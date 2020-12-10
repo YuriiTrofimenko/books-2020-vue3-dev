@@ -1,5 +1,5 @@
 <template lang='pug'>
-//Header
+Header
 router-view.container
 </template>
 <script>

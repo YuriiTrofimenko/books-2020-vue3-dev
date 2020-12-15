@@ -10,6 +10,7 @@
   "dependencies": {
     "core-js": "^3.6.5",
     "element-plus": "^1.0.1-beta.7",
+    "firebase": "^8.2.0",
     "pug": "^3.0.0",
     "pug-lint": "^2.6.0",
     "pug-plain-loader": "^1.1.0",

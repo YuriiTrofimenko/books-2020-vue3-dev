@@ -26,8 +26,12 @@ export default {
         }
         ui.start('#firebaseui-auth-container', uiConfig) */
         const provider = new firebase.auth.GoogleAuthProvider()
+        provider.addScope('profile')
+        provider.addScope('email')
+        provider.addScope('openid')
         try {
-          await firebase.auth().signInWithPopup(provider)
+          // await firebase.auth().signInWithPopup(provider)
+          await firebase.auth().signInWithRedirect(provider)
         } catch (ex) {
           console.log(ex)
         }

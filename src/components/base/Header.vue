@@ -4,7 +4,7 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
         v-for="(link, index) in state.linkMenu"
         :key="link.title"
         @click="state.menuShow = false"
-        :index="index"
+        :index="index.toString()"
     )
         router-link(
             :to="`${link.url}`"
@@ -17,7 +17,7 @@ export default {
     setup () {
         const state = reactive({
             menuShow: false,
-            activeItem: 0,
+            activeIndex: "0",
             linkMenu: [
                 { title: 'Home', url: '/', icon: 'mdi-home' },
                 { title: 'Contacts', url: '/contacts', icon: 'mdi-contact-phone-outline' }

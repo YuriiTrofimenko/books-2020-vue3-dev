@@ -1,6 +1,8 @@
 import { createStore } from 'vuex'
 import user from './user'
 import common from './common'
+import country from './country'
+import city from './city'
 
 export default createStore({
   state: {
@@ -10,6 +12,6 @@ export default createStore({
   actions: {
   },
   modules: {
-    user, common
+    user, common, country, city
   }
 })

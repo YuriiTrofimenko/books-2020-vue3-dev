@@ -29,9 +29,10 @@ export default {
         provider.addScope('profile')
         provider.addScope('email')
         provider.addScope('openid')
+        console.log(provider)
         try {
-          // await firebase.auth().signInWithPopup(provider)
-          await firebase.auth().signInWithRedirect(provider)
+          await firebase.auth().signInWithPopup(provider)
+          // await firebase.auth().signInWithRedirect(provider)
         } catch (ex) {
           console.log(ex)
         }

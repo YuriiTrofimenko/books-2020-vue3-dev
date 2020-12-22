@@ -4,48 +4,47 @@
 //-         ul(v-for="country in countries" :key="country.id.toString()")
 //-             li {{country.name}}
 div
-    vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
-      | Hello!
-    vs-sidebar.sidebarx(parent='body' default-index='1' color='primary' spacer='' v-model='filterBarActive')
-      .header-sidebar(slot='header')
-        h4 Фильтры
-      vs-sidebar-item(index='1' icon='place')
-        vue-autosuggest(v-model="filter.country.name" :suggestions="suggestedCountries" :get-suggestion-value="getCountriesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'страна'}" @input='countryInputChange' @selected='countryItemSelected')
-          template(slot-scope='{suggestion}')
-            span {{suggestion.item.name}}
-      vs-sidebar-item(index='2' icon='place')
-        vue-autosuggest(v-model="filter.city.name" :suggestions="suggestedCities" :get-suggestion-value="getCitiesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'город?'}" @input='cityInputChange' @selected='cityItemSelected')
-          template(slot-scope='{suggestion}')
-            span {{suggestion.item.name}}
-      .footer-sidebar(slot='footer')
-        vs-button(icon='done' color='success' type='flat' @click='applyFilter') Применить
-    vs-row#search-row
-      vs-col(vs-type='flex' vs-justify='center' vs-align='center' vs-lg='11' vs-sm='6' vs-xs='12')
-        vs-input(icon="search" icon-after="true" placeholder='Поиск по названию / автору' v-model='filter.search' @input='onSearchInputChange')
-      vs-col(vs-type='flex' vs-justify='center' vs-align='center' vs-lg='1' vs-sm='1' vs-xs='12')
-        vs-icon(icon='filter_list' @click='filterBarActive = !filterBarActive')
-        span(@click='filterBarActive = !filterBarActive') Фильтр
-    vs-row.infinite-wrapper
-      vs-col(:key='book.id' v-for='book in books' vs-type='flex' vs-justify='center' vs-align='center' vs-lg='6' vs-sm='6' vs-xs='12')
+    //- vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
+    //-   | Hello!
+    //- боковая панель фильтра и сортировки
+    el-drawer(title="Фильтры" v-model='state.filterBarActive')
+      el-collapse
+        el-collapse-item(name='1')
+          template(#title)
+            | Страна
+            i place
+          vue-autosuggest(v-model="filter.country.name" :suggestions="suggestedCountries" :get-suggestion-value="getCountriesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'страна'}" @input='countryInputChange' @selected='countryItemSelected')
+            template(slot-scope='{suggestion}')
+              span {{suggestion.item.name}}
+        el-collapse-item(name='2')
+          vue-autosuggest(v-model="state.filter.city.name" :suggestions="state.suggestedCities" :get-suggestion-value="getCitiesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'город?'}" @input='cityInputChange' @selected='cityItemSelected')
+            template(slot-scope='{suggestion}')
+              span {{suggestion.item.name}}
+        el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
+    el-row#search-row(type='flex' justify='center' align='middle' )
+      el-col(lg='11' sm='6' xs='12')
+        el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
+      el-col(lg='1' sm='1' xs='12')
+        el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
+          span(@click='state.filterBarActive = !state.filterBarActive') Фильтр
+    el-row.infinite-wrapper(type='flex' justify='center' align='middle')
+      el-col(:key='book.id' v-for='book in books' lg='6' sm='6' xs='12')
         template
-          vs-row(vs-justify='center')
-            vs-col(type='flex' vs-justify='center' vs-align='center' vs-w='12')
-              vs-card.cardx
-                div(slot='header')
-                  h3
-                    | {{book.title}}
-                div(slot='media')
-                  img(v-if='book.image' :src='book.image')
-                  img(v-if='!book.image' src='../assets/logo.png')
-                div
-                  span
-                    | {{book.description}}
-                div(slot='footer')
-                  vs-row(vs-justify='flex-end')
-                    vs-button(type='gradient' color='danger' icon='favorite')
-                    vs-button(color='primary' icon='turned_in_not')
-                    vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='details' @click='showBookDetails(book.id)')
-      infinite-loading(@infinite='booksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
+          el-card
+            h3
+              | {{book.title}}
+            div
+              img(v-if='book.image' :src='book.image')
+              img(v-else src='../assets/logo.png')
+            div
+              span
+                | {{book.description}}
+            div
+              el-row(justify='flex-end')
+                el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
+                el-button(circle icon='el-icon-question')
+                el-button(circle icon='el-icon-share')
+    infinite-loading(@infinite='booksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
 </template>
 <script>
 // import { computed, onMounted } from "vue"
@@ -63,11 +62,13 @@ div
 // }
 import InfiniteLoading from 'vue-infinite-loading'
 import { VueAutosuggest } from 'vue-autosuggest'
+import { computed, reactive, beforeDestroy } from 'vue'
+import store from '../store'
 export default {
   name: 'Search',
   components: { InfiniteLoading, VueAutosuggest },
-  data () {
-    return {
+  setup () {
+    const state = reactive({
       isBooksListChanged: false,
       // Модель фильрации по строке поиска и полям боковой панели
       filter: {
@@ -86,63 +87,48 @@ export default {
       filterBarActive: false,
       suggestedCountries: [],
       suggestedCities: [],
-      activeRequestPrompt: false,
+      // activeRequestPrompt: false,
       selectedBookId: null
-    }
-  },
-  computed: {
-    books () {
-      // источник данных о книгах
-      return this.$store.getters.books
-    },
-    countries () {
-      return [
+    })
+    // источник данных о книгах
+    const books = computed(() => store.getters.books)
+    const countries = countries(() => [
         {
-          data: this.$store.getters.countries
+          data: store.getters.countries
         }
-      ]
-    },
-    cities () {
-      return [
+      ])
+    const cities = cities(() => [
         {
-          data: this.$store.getters.cities
+          data: store.getters.cities
         }
-      ]
-    }
-  },
-  watch: {
+      ])
     // Если изменился список
-    books (newVal, oldVal) {
-      this.isBooksListChanged = true
-    },
-    countries (newVal, oldVal) {
-      this.suggestedCountries = newVal
+    watch(() => books, (newVal, oldVal) => {
+      state.isBooksListChanged = true
+    })
+    watch(() => countries, (newVal, oldVal) => {
+      state.suggestedCountries = newVal
       if (newVal[0].data.length === 0) {
-        this.filter.country.id = null
+        state.filter.country.id = null
       }
-    },
-    cities (newVal, oldVal) {
-      this.suggestedCities = newVal
+    })
+    watch(() => cities, (newVal, oldVal) => {
+      state.suggestedCities = newVal
       if (newVal[0].data.length === 0) {
-        this.filter.city.id = null
+        state.filter.city.id = null
       }
-    }
-  },
-  created () {
-    console.log('created')
-    /* this.books.length = 0
-    this.$store.dispatch('clearBooks') */
-  },
-  beforeDestroy () {
-    console.log('beforeDestroy')
-    if (this.infiniteLoadingState) {
-      this.$store.dispatch('clearBooks')
-    }
-  },
-  methods: {
-    booksInfiniteHandler ($state) {
-      this.infiniteLoadingState = $state
-      this.$store.dispatch('loadBooks', this.filter)
+    })
+    onBeforeUnmount (() => {
+      console.log('beforeDestroy')
+      // TODO vusax -> element plus
+      if (state.infiniteLoadingState) {
+        store.dispatch('clearBooks')
+      }
+    })
+    // TODO vusax -> element plus
+    function booksInfiniteHandler ($state) {
+      state.infiniteLoadingState = $state
+      store.dispatch('loadBooks', this.filter)
         .then(() => {
           if (this.isBooksListChanged) {
             console.log('$state.loaded()')
@@ -156,86 +142,102 @@ export default {
         .catch(err => {
           console.log(err)
         })
-    },
+    }
     // Содержимое поля ввода поиска изменилось на один символ
-    onSearchInputChange () {
-      if (this.infiniteLoadingState) {
-        this.$store.dispatch('clearBooks')
-        this.infiniteLoadingState.reset()
+    function onSearchInputChange () {
+      // TODO vusax -> element plus
+      if (state.infiniteLoadingState) {
+        store.dispatch('clearBooks')
+        state.infiniteLoadingState.reset()
       }
-    },
-    countryItemSelected (selectedCountry) {
-      this.filter.country = selectedCountry.item
-      this.filter.city = {
+    }
+    // пользователь выбрал страну из предложенного списка
+    function countryItemSelected (selectedCountry) {
+      state.filter.country = selectedCountry.item
+      // срос информации о городе:
+      // после выбора страны пользователь получит результаты фильтра
+      // с книгами из всех городов этой страны
+      state.filter.city = {
         id: null,
         name: ''
       }
-      this.$store.dispatch('loadCities', {
+      // загрузка списка городов выбранной страны
+      store.dispatch('loadCities', {
         startsWith: '',
         countryId: this.filter.country.id
       })
-    },
-    async countryInputChange (text) {
-      this.filter.country.id = null
-      this.filter.city = {
+    }
+    // если пользователь начал набирать название страны вручную -
+    async function countryInputChange (text) {
+      // - сброс ИД выбранной страны ...
+      state.filter.country.id = null
+      // ... и сброс выбранного города 
+      state.filter.city = {
         id: null,
         name: ''
       }
-      await this.$store.dispatch('loadCities', {
+      await store.dispatch('loadCities', {
         startsWith: text,
         countryId: null
       })
-      // your search method
-      // now `items` will be showed in the suggestion list
-      this.$store.dispatch('loadCountries', {
+      // получение с сервера списка стран,
+      // название которых начинается на подстроку из переменной text
+      store.dispatch('loadCountries', {
         startsWith: text
       })
         .then(() => {
-          console.log('country suggestions', this.countries)
+          console.log('country suggestions', countries.value)
         })
         .catch(err => {
           console.log(err)
         })
-    },
-    getCountriesSuggestionValue (suggestion) {
+    }
+    function getCountriesSuggestionValue (suggestion) {
       return suggestion.item.name
-    },
-    cityItemSelected (selectedCity) {
-      this.filter.city = selectedCity.item
-    },
-    cityInputChange (text) {
-      this.filter.city.id = null
-      this.$store.dispatch('loadCities', {
+    }
+    function cityItemSelected (selectedCity) {
+      state.filter.city = selectedCity.item
+    }
+    function cityInputChange (text) {
+      state.filter.city.id = null
+      store.dispatch('loadCities', {
         startsWith: text,
-        countryId: this.filter.country.id
+        countryId: state.filter.country.id
       })
         .then(() => {
-          console.log('city suggestions', this.cities)
+          console.log('city suggestions', cities.value)
         })
         .catch(err => {
           console.log(err)
         })
-    },
-    getCitiesSuggestionValue (suggestion) {
+    }
+    function getCitiesSuggestionValue (suggestion) {
       return suggestion.item.name
-    },
+    }
     // Обработка клика по кнопке применения фильтра
-    applyFilter () {
-      if (this.infiniteLoadingState) {
-        this.$store.dispatch('clearBooks')
-        this.infiniteLoadingState.reset()
+    function applyFilter () {
+      if (state.infiniteLoadingState) {
+        store.dispatch('clearBooks')
+        state.infiniteLoadingState.reset()
       }
-    },
+    }
     // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
-    showBookDetails (id) {
+    function showBookDetails (id) {
       this.selectedBookId = id
       this.activeRequestPrompt = true
-    },
+    }
     // Отправка запроса на книгу владельцу, если кликнута положительная кнопка диалога
-    acceptAlert () {
+    function acceptAlert () {
       // console.log(this.selectedBookId)
-      this.$store.dispatch('requestBook', {bookId: this.selectedBookId})
-      this.selectedBookId = null
+      store.dispatch('requestBook', {bookId: this.selectedBookId})
+      state.selectedBookId = null
+    }
+    return {
+      state, // state
+      books, countries, cities, // computed
+      booksInfiniteHandler, onSearchInputChange, countryItemSelected, countryInputChange,
+      cityItemSelected, cityInputChange, getCitiesSuggestionValue,
+      applyFilter, showBookDetails, acceptAlert // methods
     }
   }
 }

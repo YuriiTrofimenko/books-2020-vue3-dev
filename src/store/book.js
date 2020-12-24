@@ -1,4 +1,4 @@
-import firebase from 'firebase/app'
+// import firebase from 'firebase/app'
 
 import Book from './models/BookModel'
 
@@ -55,6 +55,7 @@ export default ({
     // Добавление массива книг / собственных книг в зависимости от переданной константы
     loadBooks (state, payload) {
       // console.log(...payload.books)
+      console.log('loadBooks ', payload)
       state[payload.target].push(...payload.books)
     },
     // Редактирование собственной книги
@@ -101,6 +102,7 @@ export default ({
       state.oldestMyBookId = payload
     },
     setOldestBookId (state, payload) {
+      console.log('state.oldestBookId = ', payload)
       state.oldestBookId = payload
     }
   },
@@ -234,7 +236,7 @@ export default ({
         throw error
       }
     },
-    async loadBooks ({commit, getters, dispatch}, payload) {
+    async loadBooks ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -285,6 +287,7 @@ export default ({
                 target: 'books',
                 books: booksArray
               }
+              console.log(payload)
               // Send mutation
               commit('loadBooks', payload)
             } else {
@@ -350,7 +353,7 @@ export default ({
     },
     // Удаление книги - ЕЩЕ НЕ РЕАЛИЗОВАНО,
     // в теле функции - код из старой версии, в которой все данные хранились в firebase
-    async deleteBook ({commit, getters}, id) {
+    async deleteBook ({commit}, id) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -367,7 +370,7 @@ export default ({
       commit('clearMyBooks')
       commit('setOldestMyBookId', null)
     },
-    clearBooks ({commit, getters}) {
+    clearBooks ({commit}) {
       commit('clearBooks')
       commit('setOldestBookId', null)
     },

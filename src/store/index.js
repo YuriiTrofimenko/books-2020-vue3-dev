@@ -3,6 +3,7 @@ import user from './user'
 import common from './common'
 import country from './country'
 import city from './city'
+import book from './book'
 
 export default createStore({
   state: {
@@ -12,6 +13,6 @@ export default createStore({
   actions: {
   },
   modules: {
-    user, common, country, city
+    user, common, country, city, book
   }
 })

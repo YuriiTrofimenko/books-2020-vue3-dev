@@ -22,29 +22,28 @@ div
               span {{suggestion.item.name}}
         el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
     el-row#search-row(type='flex' justify='center' align='middle' )
-      el-col(lg='11' sm='6' xs='12')
+      el-col(:lg="11" :sm="6" :xs="12")
         el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
-      el-col(lg='1' sm='1' xs='12')
+      el-col(:lg="1" :sm="1" :xs="12")
         el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
           span(@click='state.filterBarActive = !state.filterBarActive') Фильтр
-    el-row.infinite-wrapper(type='flex' justify='center' align='middle')
-      el-col(:key='book.id' v-for='book in books' lg='6' sm='6' xs='12')
-        template
-          el-card
-            h3
-              | {{book.title}}
-            div
-              img(v-if='book.image' :src='book.image')
-              img(v-else src='../assets/logo.png')
-            div
-              span
-                | {{book.description}}
-            div
-              el-row(justify='flex-end')
-                el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
-                el-button(circle icon='el-icon-question')
-                el-button(circle icon='el-icon-share')
-    infinite-loading(@infinite='booksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
+    el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
+      el-col(:key="book.id" v-for="book in books" :lg="6" :sm="6" :xs="12")
+        el-card
+          h3
+            | {{book.title}}
+          div
+            img(v-if='book.image' :src='book.image')
+            img(v-else src='../assets/logo.png')
+          div
+            span
+              | {{book.description}}
+          div
+            el-row(justify='flex-end')
+              el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
+              el-button(circle icon='el-icon-question')
+              el-button(circle icon='el-icon-share')
+    //- infinite-loading(@infinite="booksInfiniteHandler" force-use-infinite-wrapper='.infinite-wrapper' slot="append")
 </template>
 <script>
 // import { computed, onMounted } from "vue"
@@ -60,14 +59,17 @@ div
 //         }
 //     }
 // }
-import InfiniteLoading from 'vue-infinite-loading'
+// import InfiniteLoading from 'vue-infinite-loading'
 import { VueAutosuggest } from 'vue-autosuggest'
-import { computed, reactive, beforeDestroy } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ watch, ref, onMounted, onUnmounted } from 'vue'
 import store from '../store'
 export default {
   name: 'Search',
-  components: { InfiniteLoading, VueAutosuggest },
+  components: { /* InfiniteLoading, */ VueAutosuggest },
   setup () {
+    // Создаем ссылку, по которой можно работать с элементом-оберткой
+    // области бесконечной догрузки (карточек книг)
+    const scrollComponent = ref(null)
     const state = reactive({
       isBooksListChanged: false,
       // Модель фильрации по строке поиска и полям боковой панели
@@ -83,7 +85,8 @@ export default {
         },
         type: null
       },
-      infiniteLoadingState: null,
+      // infiniteLoadingState: null,
+      isInfiniteLoadingCompleted: false,
       filterBarActive: false,
       suggestedCountries: [],
       suggestedCities: [],
@@ -92,64 +95,95 @@ export default {
     })
     // источник данных о книгах
     const books = computed(() => store.getters.books)
-    const countries = countries(() => [
+    const countries = computed(() => [
         {
           data: store.getters.countries
         }
       ])
-    const cities = cities(() => [
+    const cities = computed(() => [
         {
           data: store.getters.cities
         }
       ])
     // Если изменился список
-    watch(() => books, (newVal, oldVal) => {
+    console.log(scrollComponent)
+    watch(scrollComponent, (scrollComponentRef) => {
+      console.log('watch', scrollComponentRef.value)
       state.isBooksListChanged = true
     })
-    watch(() => countries, (newVal, oldVal) => {
+    watch(() => countries.value, (newVal) => {
       state.suggestedCountries = newVal
       if (newVal[0].data.length === 0) {
         state.filter.country.id = null
       }
     })
-    watch(() => cities, (newVal, oldVal) => {
+    watch(() => cities.value, (newVal) => {
       state.suggestedCities = newVal
       if (newVal[0].data.length === 0) {
         state.filter.city.id = null
       }
     })
-    onBeforeUnmount (() => {
+    /* onBeforeUnmount (() => {
       console.log('beforeDestroy')
-      // TODO vusax -> element plus
       if (state.infiniteLoadingState) {
         store.dispatch('clearBooks')
       }
     })
-    // TODO vusax -> element plus
     function booksInfiniteHandler ($state) {
       state.infiniteLoadingState = $state
-      store.dispatch('loadBooks', this.filter)
+      store.dispatch('loadBooks', state.filter)
         .then(() => {
-          if (this.isBooksListChanged) {
+          if (state.isBooksListChanged) {
             console.log('$state.loaded()')
             $state.loaded()
           } else {
             console.log('$state.complete()')
             $state.complete()
           }
-          this.isBooksListChanged = false
+          state.isBooksListChanged = false
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    } */
+    function loadMoreBooks () {
+      store.dispatch('loadBooks', state.filter)
+        .then(() => {
+          if (state.isBooksListChanged) {
+            console.log('$state.loaded()')
+            // $state.loaded()
+          } else {
+            console.log('$state.complete()')
+            state.isInfiniteLoadingCompleted = true
+            // $state.complete()
+          }
+          state.isBooksListChanged = false
         })
         .catch(err => {
           console.log(err)
         })
     }
+    const handleScroll = () => {
+			// let element = scrollComponent.value
+      if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
+          && !state.isInfiniteLoadingCompleted) {
+				loadMoreBooks()
+			}
+		}
+    onMounted(() => {
+			window.addEventListener("scroll", handleScroll)
+		})
+		onUnmounted(() => {
+			window.removeEventListener("scroll", handleScroll)
+		})
     // Содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
-      // TODO vusax -> element plus
-      if (state.infiniteLoadingState) {
+      store.dispatch('clearBooks')
+      /* if (state.infiniteLoadingState) {
         store.dispatch('clearBooks')
-        state.infiniteLoadingState.reset()
-      }
+        // TODO infinite-loading -> custom infinite loading
+        // state.infiniteLoadingState.reset()
+      } */
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
@@ -164,7 +198,7 @@ export default {
       // загрузка списка городов выбранной страны
       store.dispatch('loadCities', {
         startsWith: '',
-        countryId: this.filter.country.id
+        countryId: state.filter.country.id
       })
     }
     // если пользователь начал набирать название страны вручную -
@@ -216,26 +250,29 @@ export default {
     }
     // Обработка клика по кнопке применения фильтра
     function applyFilter () {
-      if (state.infiniteLoadingState) {
+      // TODO infinite-loading -> custom infinite loading
+      store.dispatch('clearBooks')
+      /* if (state.infiniteLoadingState) {
         store.dispatch('clearBooks')
         state.infiniteLoadingState.reset()
-      }
+      } */
     }
     // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
     function showBookDetails (id) {
-      this.selectedBookId = id
-      this.activeRequestPrompt = true
+      state.selectedBookId = id
+      state.activeRequestPrompt = true
     }
     // Отправка запроса на книгу владельцу, если кликнута положительная кнопка диалога
     function acceptAlert () {
-      // console.log(this.selectedBookId)
-      store.dispatch('requestBook', {bookId: this.selectedBookId})
+      // console.log(state.selectedBookId)
+      store.dispatch('requestBook', {bookId: state.selectedBookId})
       state.selectedBookId = null
     }
     return {
       state, // state
       books, countries, cities, // computed
-      booksInfiniteHandler, onSearchInputChange, countryItemSelected, countryInputChange,
+      /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
+      getCountriesSuggestionValue,
       cityItemSelected, cityInputChange, getCitiesSuggestionValue,
       applyFilter, showBookDetails, acceptAlert // methods
     }

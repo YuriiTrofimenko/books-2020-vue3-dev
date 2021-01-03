@@ -22,46 +22,34 @@ div
               span {{suggestion.item.name}}
         el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
     el-row#search-row(type='flex' justify='center' align='middle' )
-      el-col(:lg="11" :sm="6" :xs="12")
+      el-col(:lg="22" :sm="12" :xs="24")
         el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
-      el-col(:lg="1" :sm="1" :xs="12")
+      el-col(:lg="2" :sm="2" :xs="24")
         el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
           span(@click='state.filterBarActive = !state.filterBarActive') Фильтр
-    el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
-      el-col(:key="book.id" v-for="book in books" :lg="6" :sm="6" :xs="12")
-        el-card
-          h3
-            | {{book.title}}
-          div
-            img(v-if='book.image' :src='book.image')
-            img(v-else src='../assets/logo.png')
-          div
-            span
-              | {{book.description}}
-          div
-            el-row(justify='flex-end')
-              el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
-              el-button(circle icon='el-icon-question')
-              el-button(circle icon='el-icon-share')
-    //- infinite-loading(@infinite="booksInfiniteHandler" force-use-infinite-wrapper='.infinite-wrapper' slot="append")
+    //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
+    .infinite-wrapper
+      el-row(type='flex' justify='center' align='middle')
+        el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
+          el-card
+            h3
+              | {{book.title}}
+            div
+              img(v-if='book.image' :src='book.image')
+              img(v-else src='../assets/logo.png')
+            div
+              span
+                | {{book.description}}
+            div
+              el-row(justify='flex-end')
+                el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
+                el-button(circle icon='el-icon-question')
+                el-button(circle icon='el-icon-share')
+      //- infinite-loading(@infinite="booksInfiniteHandler" force-use-infinite-wrapper='.infinite-wrapper' slot="append")
 </template>
 <script>
-// import { computed, onMounted } from "vue"
-// import store from "../store"
-// export default {
-//     setup () {
-//         const countries = computed(() => store.getters.countries)
-//         onMounted(() => {
-//             store.dispatch('loadCountries', {startsWith: ''})
-//         })
-//         return {
-//             countries
-//         }
-//     }
-// }
-// import InfiniteLoading from 'vue-infinite-loading'
 import { VueAutosuggest } from 'vue-autosuggest'
-import { computed, reactive, /* onBeforeUnmount, */ watch, ref, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted } from 'vue'
 import store from '../store'
 export default {
   name: 'Search',
@@ -69,9 +57,7 @@ export default {
   setup () {
     // Создаем ссылку, по которой можно работать с элементом-оберткой
     // области бесконечной догрузки (карточек книг)
-    const scrollComponent = ref(null)
     const state = reactive({
-      isBooksListChanged: false,
       // Модель фильрации по строке поиска и полям боковой панели
       filter: {
         search: '',
@@ -85,7 +71,6 @@ export default {
         },
         type: null
       },
-      // infiniteLoadingState: null,
       isInfiniteLoadingCompleted: false,
       filterBarActive: false,
       suggestedCountries: [],
@@ -105,12 +90,6 @@ export default {
           data: store.getters.cities
         }
       ])
-    // Если изменился список
-    console.log(scrollComponent)
-    watch(scrollComponent, (scrollComponentRef) => {
-      console.log('watch', scrollComponentRef.value)
-      state.isBooksListChanged = true
-    })
     watch(() => countries.value, (newVal) => {
       state.suggestedCountries = newVal
       if (newVal[0].data.length === 0) {
@@ -128,49 +107,43 @@ export default {
       if (state.infiniteLoadingState) {
         store.dispatch('clearBooks')
       }
-    })
-    function booksInfiniteHandler ($state) {
-      state.infiniteLoadingState = $state
-      store.dispatch('loadBooks', state.filter)
-        .then(() => {
-          if (state.isBooksListChanged) {
-            console.log('$state.loaded()')
-            $state.loaded()
-          } else {
-            console.log('$state.complete()')
-            $state.complete()
-          }
-          state.isBooksListChanged = false
-        })
-        .catch(err => {
-          console.log(err)
-        })
-    } */
+    }) */
     function loadMoreBooks () {
+      const prevBooksCount = books.value.length
       store.dispatch('loadBooks', state.filter)
         .then(() => {
-          if (state.isBooksListChanged) {
+          console.log('books.value.length', prevBooksCount, books.value.length)
+          // Если изменился список книг
+          if (books.value.length > prevBooksCount) {
+            // ничего не меняем, рассчитываем,
+            // что при следующем запросе могут быть получены
+            // новые книги
             console.log('$state.loaded()')
             // $state.loaded()
           } else {
+            // иначе считаем, что список книг закончился,
+            // и устанавливаем флаг завершения попыток получения новых книг
             console.log('$state.complete()')
             state.isInfiniteLoadingCompleted = true
             // $state.complete()
           }
-          state.isBooksListChanged = false
+          // state.isBooksListChanged = false
         })
         .catch(err => {
           console.log(err)
         })
     }
     const handleScroll = () => {
-			// let element = scrollComponent.value
       if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
-          && !state.isInfiniteLoadingCompleted) {
+          && !state.isInfiniteLoadingCompleted
+          && !store.getters.loading) {
+        console.log('loadMoreBooks()')
 				loadMoreBooks()
 			}
 		}
     onMounted(() => {
+      console.log('loadMoreBooks() - First')
+      loadMoreBooks()
 			window.addEventListener("scroll", handleScroll)
 		})
 		onUnmounted(() => {
@@ -179,11 +152,6 @@ export default {
     // Содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
       store.dispatch('clearBooks')
-      /* if (state.infiniteLoadingState) {
-        store.dispatch('clearBooks')
-        // TODO infinite-loading -> custom infinite loading
-        // state.infiniteLoadingState.reset()
-      } */
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
@@ -252,10 +220,6 @@ export default {
     function applyFilter () {
       // TODO infinite-loading -> custom infinite loading
       store.dispatch('clearBooks')
-      /* if (state.infiniteLoadingState) {
-        store.dispatch('clearBooks')
-        state.infiniteLoadingState.reset()
-      } */
     }
     // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
     function showBookDetails (id) {

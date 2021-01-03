@@ -55,7 +55,7 @@ export default ({
     // Добавление массива книг / собственных книг в зависимости от переданной константы
     loadBooks (state, payload) {
       // console.log(...payload.books)
-      console.log('loadBooks ', payload)
+      // console.log('loadBooks ', payload)
       state[payload.target].push(...payload.books)
     },
     // Редактирование собственной книги
@@ -102,7 +102,7 @@ export default ({
       state.oldestMyBookId = payload
     },
     setOldestBookId (state, payload) {
-      console.log('state.oldestBookId = ', payload)
+      // console.log('state.oldestBookId = ', payload)
       state.oldestBookId = payload
     }
   },
@@ -242,7 +242,7 @@ export default ({
       try {
         const filterData = Object.assign({active: 1}, payload)
         // filterData.active = 1
-        console.log('getters.oldestBookId', getters.oldestBookId)
+        // console.log('getters.oldestBookId', getters.oldestBookId)
         if (getters.oldestBookId) {
           filterData.lastId = getters.oldestBookId
         }
@@ -287,7 +287,7 @@ export default ({
                 target: 'books',
                 books: booksArray
               }
-              console.log(payload)
+              // console.log(payload)
               // Send mutation
               commit('loadBooks', payload)
             } else {

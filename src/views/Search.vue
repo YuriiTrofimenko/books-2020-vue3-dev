@@ -1,32 +1,25 @@
 <template lang='pug'>
-//- h1 Search
-//-     h2 Demo Countries List
-//-         ul(v-for="country in countries" :key="country.id.toString()")
-//-             li {{country.name}}
 div
     //- vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
     //-   | Hello!
     //- боковая панель фильтра и сортировки
-    el-drawer(title="Фильтры" v-model='state.filterBarActive')
+    el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
       el-collapse
-        el-collapse-item(name='1')
+        el-collapse-item.filter-form__collapse-body(name='1')
           template(#title)
-            | Страна
-            i place
-          vue-autosuggest(v-model="filter.country.name" :suggestions="suggestedCountries" :get-suggestion-value="getCountriesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'страна'}" @input='countryInputChange' @selected='countryItemSelected')
-            template(slot-scope='{suggestion}')
-              span {{suggestion.item.name}}
-        el-collapse-item(name='2')
-          vue-autosuggest(v-model="state.filter.city.name" :suggestions="state.suggestedCities" :get-suggestion-value="getCitiesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'город?'}" @input='cityInputChange' @selected='cityItemSelected')
-            template(slot-scope='{suggestion}')
-              span {{suggestion.item.name}}
+            .filter-form__collapse-header
+              | Регион
+              i.header-icon.el-icon-place
+          auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @save-option="countryItemSelected" :placeholder="'Выберите страну'")
+          auto-complete(:options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @save-option="cityItemSelected" :placeholder="'Выберите город'")
+        //- el-collapse-item(name='2')
         el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
     el-row#search-row(type='flex' justify='center' align='middle' )
       el-col(:lg="22" :sm="12" :xs="24")
         el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
       el-col(:lg="2" :sm="2" :xs="24")
         el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
-          span(@click='state.filterBarActive = !state.filterBarActive') Фильтр
+          span Фильтр
     //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
     .infinite-wrapper
       el-row(type='flex' justify='center' align='middle')
@@ -45,15 +38,14 @@ div
                 el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
                 el-button(circle icon='el-icon-question')
                 el-button(circle icon='el-icon-share')
-      //- infinite-loading(@infinite="booksInfiniteHandler" force-use-infinite-wrapper='.infinite-wrapper' slot="append")
 </template>
 <script>
-import { VueAutosuggest } from 'vue-autosuggest'
-import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted } from 'vue'
 import store from '../store'
+import AutoComplete from '../components/common/AutoComplete'
 export default {
   name: 'Search',
-  components: { /* InfiniteLoading, */ VueAutosuggest },
+  components: { AutoComplete },
   setup () {
     // Создаем ссылку, по которой можно работать с элементом-оберткой
     // области бесконечной догрузки (карточек книг)
@@ -71,26 +63,20 @@ export default {
         },
         type: null
       },
+      countryOptionsKey: 'name',
+      cityOptionsKey: 'name',
       isInfiniteLoadingCompleted: false,
       filterBarActive: false,
-      suggestedCountries: [],
-      suggestedCities: [],
+      // suggestedCountries: [],
+      // suggestedCities: [],
       // activeRequestPrompt: false,
       selectedBookId: null
     })
     // источник данных о книгах
     const books = computed(() => store.getters.books)
-    const countries = computed(() => [
-        {
-          data: store.getters.countries
-        }
-      ])
-    const cities = computed(() => [
-        {
-          data: store.getters.cities
-        }
-      ])
-    watch(() => countries.value, (newVal) => {
+    const suggestedCountries = computed(() => store.getters.countries)
+    const suggestedCities = computed(() => store.getters.cities)
+    /* watch(() => countries.value, (newVal) => {
       state.suggestedCountries = newVal
       if (newVal[0].data.length === 0) {
         state.filter.country.id = null
@@ -101,13 +87,15 @@ export default {
       if (newVal[0].data.length === 0) {
         state.filter.city.id = null
       }
-    })
+    }) */
     /* onBeforeUnmount (() => {
       console.log('beforeDestroy')
       if (state.infiniteLoadingState) {
         store.dispatch('clearBooks')
       }
     }) */
+    // метод для вызова каждый раз, когда нужно получить
+    // очередную порцию моделей книг для заполнения сетки
     function loadMoreBooks () {
       const prevBooksCount = books.value.length
       store.dispatch('loadBooks', state.filter)
@@ -133,6 +121,7 @@ export default {
           console.log(err)
         })
     }
+    // обработчик прокрутки страницы до низа
     const handleScroll = () => {
       if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
           && !state.isInfiniteLoadingCompleted
@@ -140,12 +129,16 @@ export default {
         console.log('loadMoreBooks()')
 				loadMoreBooks()
 			}
-		}
+    }
+    // обработчик события жизненного цикла компонента:
+    // был примонтирован к дереву
     onMounted(() => {
       console.log('loadMoreBooks() - First')
       loadMoreBooks()
 			window.addEventListener("scroll", handleScroll)
-		})
+    })
+    // обработчик события жизненного цикла компонента:
+    // был отмонтирован от дерева
 		onUnmounted(() => {
 			window.removeEventListener("scroll", handleScroll)
 		})
@@ -155,7 +148,8 @@ export default {
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
-      state.filter.country = selectedCountry.item
+      console.log('selectedCountry', selectedCountry)
+      state.filter.country = selectedCountry
       // срос информации о городе:
       // после выбора страны пользователь получит результаты фильтра
       // с книгами из всех городов этой страны
@@ -169,26 +163,27 @@ export default {
         countryId: state.filter.country.id
       })
     }
-    // если пользователь начал набирать название страны вручную -
-    async function countryInputChange (text) {
-      // - сброс ИД выбранной страны ...
+    // если пользователь начал набирать название страны
+    async function countryInputChange (inputText) {
+      console.log('1', inputText)
+      // сброс ИД выбранной страны ...
       state.filter.country.id = null
       // ... и сброс выбранного города 
       state.filter.city = {
         id: null,
         name: ''
       }
-      await store.dispatch('loadCities', {
-        startsWith: text,
-        countryId: null
-      })
+      store.dispatch('loadCities', {
+            startsWith: '',
+            countryId: null
+          })
       // получение с сервера списка стран,
       // название которых начинается на подстроку из переменной text
-      store.dispatch('loadCountries', {
-        startsWith: text
+      await store.dispatch('loadCountries', {
+        startsWith: inputText
       })
         .then(() => {
-          console.log('country suggestions', countries.value)
+          console.log('country suggestions', suggestedCountries.value)
         })
         .catch(err => {
           console.log(err)
@@ -198,16 +193,17 @@ export default {
       return suggestion.item.name
     }
     function cityItemSelected (selectedCity) {
-      state.filter.city = selectedCity.item
+      console.log('selectedCountry', selectedCity)
+      state.filter.city = selectedCity
     }
-    function cityInputChange (text) {
+    function cityInputChange (inputText) {
       state.filter.city.id = null
       store.dispatch('loadCities', {
-        startsWith: text,
+        startsWith: inputText,
         countryId: state.filter.country.id
       })
         .then(() => {
-          console.log('city suggestions', cities.value)
+          console.log('city suggestions', suggestedCities.value)
         })
         .catch(err => {
           console.log(err)
@@ -234,7 +230,7 @@ export default {
     }
     return {
       state, // state
-      books, countries, cities, // computed
+      books, suggestedCountries, suggestedCities, // computed
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
       getCountriesSuggestionValue,
       cityItemSelected, cityInputChange, getCitiesSuggestionValue,
@@ -251,6 +247,10 @@ export default {
   .infinite-wrapper
     overflow scroll
     height 800px
+  .filter-form__collapse-body
+    margin: 10px
+    /* .filter-form__collapse-header
+      margin-left 15px */
   #search-row
     padding 15px
     .vs-con-input-label

@@ -1,7 +1,7 @@
 <template lang="pug">
 div
   el-input.input(type="text" @input="onChange" v-model="state.userInput" :placeholder="placeholder")
-  .suggestions-card(v-if="suggestions.length && state.isSuggestionsShown")
+  .suggestions-card(v-if="suggestions.length && state.isSuggestionsShown && state.userInput")
     div(v-for="(s,i) in suggestions" :key="i" @click="()=>{selected(s)}") {{s[optionsKey]}}
 </template>
 
@@ -12,7 +12,8 @@ export default {
   props: {
     options: Array,
     optionsKey: String,
-    placeholder: String
+    placeholder: String,
+    clearHandler: Boolean
   },
   setup(props, ctx) {
     const state = reactive({
@@ -21,18 +22,25 @@ export default {
       isSuggestionsShown: false
     })
     const suggestions = computed(() => props.options)
+    const clearHandlerComputed = computed(() => props.clearHandler)
     watch(suggestions, (newValue) => {
-      console.log('newValue', newValue.length)
       if (newValue.length > 0){
         state.isSuggestionsShown = true
       } else {
         state.isSuggestionsShown = false
       }
     })
-    function selected (_item) {
-      state.userInput = _item[props.optionsKey];
-      state.selectedItem = { userInput: state.userInput, item: _item }
+    watch(clearHandlerComputed, (newValue) => {
+      if (newValue){
+        state.userInput = ""
+        state.selectedItem = { }
+      }
+    })
+    function selected (item) {
+      state.userInput = item[props.optionsKey];
+      state.selectedItem = { userInput: state.userInput, item: item }
       state.isSuggestionsShown = false
+      ctx.emit('item-selected', item)
     }
     function onChange (value) {
       ctx.emit('new-text', value)

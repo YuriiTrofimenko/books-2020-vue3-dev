@@ -10,8 +10,8 @@ div
             .filter-form__collapse-header
               | Регион
               i.header-icon.el-icon-place
-          auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @save-option="countryItemSelected" :placeholder="'Выберите страну'")
-          auto-complete(:options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @save-option="cityItemSelected" :placeholder="'Выберите город'")
+          auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @itemSelected="countryItemSelected" :placeholder="'Выберите страну'" :clearHandler="state.clearCountriesHandler")
+          auto-complete(v-if="state.filter.country.id" :options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @itemSelected="cityItemSelected" :placeholder="'Выберите город'" :clearHandler="state.clearCitiesHandler")
         //- el-collapse-item(name='2')
         el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
     el-row#search-row(type='flex' justify='center' align='middle' )
@@ -50,7 +50,7 @@ export default {
     // Создаем ссылку, по которой можно работать с элементом-оберткой
     // области бесконечной догрузки (карточек книг)
     const state = reactive({
-      // Модель фильрации по строке поиска и полям боковой панели
+      // Модель фильтрации по строке поиска и полям боковой панели
       filter: {
         search: '',
         country: {
@@ -65,6 +65,8 @@ export default {
       },
       countryOptionsKey: 'name',
       cityOptionsKey: 'name',
+      clearCountriesHandler: false,
+      clearCitiesHandler: false,
       isInfiniteLoadingCompleted: false,
       filterBarActive: false,
       // suggestedCountries: [],
@@ -133,18 +135,20 @@ export default {
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
     onMounted(() => {
-      console.log('loadMoreBooks() - First')
+      // первый вызов метода получения порции моделей книг
       loadMoreBooks()
+      // установка обработчика события прокрутки
 			window.addEventListener("scroll", handleScroll)
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
 		onUnmounted(() => {
+      // удаление обработчика события прокрутки
 			window.removeEventListener("scroll", handleScroll)
 		})
     // Содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
-      store.dispatch('clearBooks')
+      resetInfiniteBookLoading()
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
@@ -157,6 +161,7 @@ export default {
         id: null,
         name: ''
       }
+      clearCities()
       // загрузка списка городов выбранной страны
       store.dispatch('loadCities', {
         startsWith: '',
@@ -173,6 +178,7 @@ export default {
         id: null,
         name: ''
       }
+      clearCities()
       store.dispatch('loadCities', {
             startsWith: '',
             countryId: null
@@ -189,9 +195,10 @@ export default {
           console.log(err)
         })
     }
-    function getCountriesSuggestionValue (suggestion) {
-      return suggestion.item.name
-    }
+    /* function clearCountries () {
+      state.clearCountriesHandler = true
+      state.clearCountriesHandler = false
+    } */
     function cityItemSelected (selectedCity) {
       console.log('selectedCountry', selectedCity)
       state.filter.city = selectedCity
@@ -209,13 +216,20 @@ export default {
           console.log(err)
         })
     }
-    function getCitiesSuggestionValue (suggestion) {
-      return suggestion.item.name
+    function clearCities () {
+      state.clearCitiesHandler = true
+      state.clearCitiesHandler = false
     }
     // Обработка клика по кнопке применения фильтра
     function applyFilter () {
-      // TODO infinite-loading -> custom infinite loading
+      resetInfiniteBookLoading()
+    }
+    function resetInfiniteBookLoading () {
+      // очистка списка моделей книг
       store.dispatch('clearBooks')
+      // вызов метода получения порции моделей книг
+      // для старта процесса бесконечной загрузки с нуля
+      loadMoreBooks()
     }
     // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
     function showBookDetails (id) {
@@ -232,8 +246,7 @@ export default {
       state, // state
       books, suggestedCountries, suggestedCities, // computed
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
-      getCountriesSuggestionValue,
-      cityItemSelected, cityInputChange, getCitiesSuggestionValue,
+      cityItemSelected, cityInputChange,
       applyFilter, showBookDetails, acceptAlert // methods
     }
   }

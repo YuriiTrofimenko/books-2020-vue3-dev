@@ -39,7 +39,7 @@ export default {
         const checkUser = computed(() => store.getters.checkUser)
         const userData = computed(() => store.getters.user)
         const isLoading = computed(() => store.getters.loading)
-        const linkMenu = computed(() =>
+        /* const linkMenu = computed(() =>
           (checkUser.value)
             ? [
                 { title: 'Home', url: '/', icon: 'mdi-home' },
@@ -51,7 +51,20 @@ export default {
                 { title: 'Search', url: '/search', icon: 'mdi-book-search-outline' },
                 { title: 'Contacts', url: '/contacts', icon: 'mdi-contact-phone-outline' }
               ]
-          )
+          ) */
+        const linkMenu = computed(() =>
+          (checkUser.value)
+            ? [
+                { title: 'Главная', url: '/', icon: 'mdi-home' },
+                { title: 'Поиск', url: '/search', icon: 'mdi-book-search-outline' },
+                { title: 'Мои книги', url: '/my-books', icon: 'mdi-format-list-bulleted' },
+                { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
+              ] : [
+                { title: 'Главная', url: '/', icon: 'mdi-home' },
+                { title: 'Поиск', url: '/search', icon: 'mdi-book-search-outline' },
+                { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
+              ]
+        )
         function signOut () {
           // Выход из учетной записи
           store.dispatch('logoutUser')

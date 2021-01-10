@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Search from '../views/Search.vue'
-import MyOffers from '../views/MyOffers.vue'
+import MyBooks from '../views/MyBooks.vue'
 import Contacts from '../views/Contacts.vue'
 import GoogleAuth from '../views/GoogleAuth.vue'
 import store from '../store'
@@ -18,9 +18,9 @@ const routes = [
     component: Search
   },
   {
-    path: '/my-offers',
-    name: 'MyOffers',
-    component: MyOffers,
+    path: '/my-books',
+    name: 'MyBooks',
+    component: MyBooks,
     // метка: переход на данный раздел требует аутентификации
     meta: {
       requiresAuth: true

@@ -17,8 +17,6 @@
     "stylus": "^0.54.8",
     "stylus-loader": "^3.0.2",
     "vue": "^3.0.0",
-    "vue-autosuggest": "^2.2.0",
-    "vue-infinite-loading": "^2.4.5",
     "vue-router": "^4.0.0-0",
     "vuex": "^4.0.0-0"
   },

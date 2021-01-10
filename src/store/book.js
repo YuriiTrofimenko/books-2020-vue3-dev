@@ -27,10 +27,14 @@ export default ({
         title,
         author,
         genre,
+        publisher,
+        volumeOrIssue,
         description,
         country,
         city,
         type,
+        language,
+        publicationDate,
         image,
         active
       }
@@ -44,10 +48,14 @@ export default ({
         title,
         author,
         genre,
+        publisher,
+        volumeOrIssue,
         description,
         country,
         city,
         type,
+        language,
+        publicationDate,
         image,
         active
       })
@@ -71,10 +79,14 @@ export default ({
         title: (payload.title) ? payload.title : oldBook.title,
         author: (payload.author) ? payload.author : oldBook.author,
         genre: (payload.genre) ? payload.genre : oldBook.genre,
+        publisher: (payload.publisher) ? payload.publisher : oldBook.publisher,
+        volumeOrIssue: (payload.volumeOrIssue) ? payload.volumeOrIssue : oldBook.volumeOrIssue,
         description: (payload.description) ? payload.description : oldBook.description,
         country: (payload.country) ? payload.country : oldBook.country,
         city: (payload.city) ? payload.city : oldBook.city,
         type: (payload.type) ? payload.type : oldBook.type,
+        language: (payload.language) ? payload.language : oldBook.language,
+        publicationDate: (payload.publicationDate) ? payload.publicationDate : oldBook.publicationDate,
         image: (payload.image) ? payload.image : oldBook.image,
         active: payload.active
       }
@@ -117,11 +129,15 @@ export default ({
         let newBookData = {
           'title': payload.title,
           'author': payload.author,
-          'genre': '',
+          'genre': payload.genre,
+          'publisher': payload.publisher,
+          'volumeOrIssue': payload.volumeOrIssue,
           'description': payload.description,
           'countryId': payload.country,
           'cityId': payload.city,
           'typeId': payload.type,
+          'language': payload.language,
+          'publicationDate': payload.publicationDate,
           'image': payload.image,
           'active': payload.active ? 1 : 0,
           'userId': getters.user.id,
@@ -129,6 +145,7 @@ export default ({
           'id': null,
           'updatedAt': null
         }
+        console.log(newBookData)
         // Адрес добавления книги на сервер
         const url = getters.baseRestApiUrl + '?controller=book&action=create'
         const requestData = {
@@ -148,6 +165,8 @@ export default ({
             commit('newBook', {
               ...response.data
             })
+          } else {
+            commit('setError', response.message)
           }
         }).catch(function (e) {
           console.log(e)
@@ -160,13 +179,11 @@ export default ({
       }
     },
     // Загрузка собственных книг пользователя
-    async loadMyBooks ({commit, getters}) {
+    async loadMyBooks ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
-        let filterData = {
-          'userId': getters.user.id
-        }
+        const filterData = Object.assign({ 'userId': getters.user.id }, payload)
         // если ранее загружались книг
         // - помещаем ИД последней загруженной книги
         // параметр фильтра, который сообщит бэку,
@@ -201,10 +218,14 @@ export default ({
                     myBook.title,
                     myBook.author,
                     myBook.genre,
+                    myBook.publisher,
+                    myBook.volumeOrIssue,
                     myBook.description,
                     myBook.country,
                     myBook.city,
                     myBook.type,
+                    myBook.language,
+                    myBook.publicationDate,
                     myBook.image,
                     myBook.active,
                     myBook.userId,
@@ -270,10 +291,14 @@ export default ({
                     book.title,
                     book.author,
                     book.genre,
+                    book.publisher,
+                    book.volumeOrIssue,
                     book.description,
                     book.country,
                     book.city,
                     book.type,
+                    book.language,
+                    book.publicationDate,
                     book.image,
                     book.active,
                     book.userId,
@@ -312,11 +337,15 @@ export default ({
         let editedBookData = {
           'title': payload.title,
           'author': payload.author,
-          'genre': '',
+          'genre': payload.genre,
+          'publisher': payload.publisher,
+          'volumeOrIssue': payload.volumeOrIssue,
           'description': payload.description,
           'countryId': payload.country,
           'cityId': payload.city,
           'typeId': payload.type,
+          'language': payload.language,
+          'publicationDate': payload.publicationDate,
           'image': payload.image,
           'active': payload.active ? 1 : 0,
           'userId': getters.user.id,
@@ -340,6 +369,8 @@ export default ({
             commit('editBook', {
               ...response.data
             })
+          } else {
+            commit('setError', response.message)
           }
         }).catch(function (e) {
           console.log(e)
@@ -351,8 +382,6 @@ export default ({
         throw error
       }
     },
-    // Удаление книги - ЕЩЕ НЕ РЕАЛИЗОВАНО,
-    // в теле функции - код из старой версии, в которой все данные хранились в firebase
     async deleteBook ({commit}, id) {
       commit('clearError')
       commit('setLoading', true)

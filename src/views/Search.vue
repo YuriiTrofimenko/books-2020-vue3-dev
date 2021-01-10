@@ -1,43 +1,50 @@
 <template lang='pug'>
 div
-    //- vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
-    //-   | Hello!
-    //- боковая панель фильтра и сортировки
-    el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
-      el-collapse
-        el-collapse-item.filter-form__collapse-body(name='1')
-          template(#title)
-            .filter-form__collapse-header
-              | Регион
-              i.header-icon.el-icon-place
-          auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @itemSelected="countryItemSelected" :placeholder="'Выберите страну'" :clearHandler="state.clearCountriesHandler")
-          auto-complete(v-if="state.filter.country.id" :options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @itemSelected="cityItemSelected" :placeholder="'Выберите город'" :clearHandler="state.clearCitiesHandler")
-        //- el-collapse-item(name='2')
-        el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
-    el-row#search-row(type='flex' justify='center' align='middle' )
-      el-col(:lg="22" :sm="12" :xs="24")
-        el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
-      el-col(:lg="2" :sm="2" :xs="24")
-        el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
-          span Фильтр
-    //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
-    .infinite-wrapper
-      el-row(type='flex' justify='center' align='middle')
-        el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
-          el-card
-            h3
-              | {{book.title}}
-            div
-              img(v-if='book.image' :src='book.image')
-              img(v-else src='../assets/logo.png')
-            div
-              span
-                | {{book.description}}
-            div
-              el-row(justify='flex-end')
-                el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
-                el-button(circle icon='el-icon-question')
-                el-button(circle icon='el-icon-share')
+  //- vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
+  //-   | Hello!
+  //- боковая панель фильтра и сортировки
+  el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
+    el-collapse(v-model="state.activeFilterBarItems")
+      el-collapse-item.filter-form__collapse-body(name='1')
+        template(#title)
+          .filter-form__collapse-header
+            | Регион
+            i.header-icon.el-icon-place
+        auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @itemSelected="countryItemSelected" :placeholder="'Выберите страну'" :clearHandler="state.clearCountriesHandler")
+        auto-complete(v-if="state.filter.country.id" :options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @itemSelected="cityItemSelected" :placeholder="'Выберите город'" :clearHandler="state.clearCitiesHandler")
+      el-collapse-item.filter-form__collapse-body(name='2')
+        template(#title)
+          .filter-form__collapse-header
+            | Тип предложения
+            i.header-icon.el-icon-place
+        el-select(v-model='state.filter.type' clearable placeholder="выбрать тип")
+          el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in state.typeOptions')
+      //- el-collapse-item(name='3')
+      el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
+  el-row#search-row(type='flex' justify='center' align='middle' )
+    el-col(:lg="22" :sm="12" :xs="24")
+      el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
+    el-col(:lg="2" :sm="2" :xs="24")
+      el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
+        span Фильтр
+  //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
+  .infinite-wrapper
+    el-row(type='flex' justify='center' align='middle')
+      el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
+        el-card
+          h3
+            | {{book.title}}
+          div
+            img(v-if='book.image' :src='book.image')
+            img(v-else src='../assets/logo.png')
+          div
+            span
+              | {{book.description}}
+          div
+            el-row(justify='flex-end')
+              el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
+              el-button(circle icon='el-icon-question')
+              el-button(circle icon='el-icon-share')
 </template>
 <script>
 import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted } from 'vue'
@@ -69,10 +76,15 @@ export default {
       clearCitiesHandler: false,
       isInfiniteLoadingCompleted: false,
       filterBarActive: false,
-      // suggestedCountries: [],
-      // suggestedCities: [],
-      // activeRequestPrompt: false,
-      selectedBookId: null
+      // идентификатор книги, выбранной для просмотра детализации,
+      // для запроса на получение или для шаринга в соцсетях
+      selectedBookId: null,
+      // TODO загружать типы книг с сервера
+      typeOptions: [
+        {text: 'отдам', value: 1},
+        {text: 'дам почитать', value: 2}
+      ],
+      activeFilterBarItems: ['1', '2']
     })
     // источник данных о книгах
     const books = computed(() => store.getters.books)
@@ -99,23 +111,20 @@ export default {
     // метод для вызова каждый раз, когда нужно получить
     // очередную порцию моделей книг для заполнения сетки
     function loadMoreBooks () {
+      // запоминание количества ранее загруженных книг
       const prevBooksCount = books.value.length
+      // попытка получить следующую порцию моделей книг
       store.dispatch('loadBooks', state.filter)
         .then(() => {
-          console.log('books.value.length', prevBooksCount, books.value.length)
           // Если изменился список книг
           if (books.value.length > prevBooksCount) {
             // ничего не меняем, рассчитываем,
             // что при следующем запросе могут быть получены
             // новые книги
-            console.log('$state.loaded()')
-            // $state.loaded()
           } else {
             // иначе считаем, что список книг закончился,
             // и устанавливаем флаг завершения попыток получения новых книг
-            console.log('$state.complete()')
             state.isInfiniteLoadingCompleted = true
-            // $state.complete()
           }
           // state.isBooksListChanged = false
         })
@@ -128,7 +137,6 @@ export default {
       if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
           && !state.isInfiniteLoadingCompleted
           && !store.getters.loading) {
-        console.log('loadMoreBooks()')
 				loadMoreBooks()
 			}
     }
@@ -144,7 +152,9 @@ export default {
     // был отмонтирован от дерева
 		onUnmounted(() => {
       // удаление обработчика события прокрутки
-			window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("scroll", handleScroll)
+      // очистка списка моделей книг
+      store.dispatch('clearBooks')
 		})
     // Содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
@@ -152,7 +162,6 @@ export default {
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
-      console.log('selectedCountry', selectedCountry)
       state.filter.country = selectedCountry
       // срос информации о городе:
       // после выбора страны пользователь получит результаты фильтра
@@ -200,7 +209,6 @@ export default {
       state.clearCountriesHandler = false
     } */
     function cityItemSelected (selectedCity) {
-      console.log('selectedCountry', selectedCity)
       state.filter.city = selectedCity
     }
     function cityInputChange (inputText) {
@@ -254,20 +262,20 @@ export default {
 </script>
 
 <style scoped lang="stylus">
-  img
-    max-height 300px
-    max-width 100%
-  .infinite-wrapper
-    overflow scroll
-    height 800px
-  .filter-form__collapse-body
-    margin: 10px
-    /* .filter-form__collapse-header
-      margin-left 15px */
-  #search-row
-    padding 15px
-    .vs-con-input-label
-      width 100% !important
-      min-width 200px
-      margin-right 15px
+img
+  max-height 300px
+  max-width 100%
+.infinite-wrapper
+  overflow scroll
+  height 800px
+.filter-form__collapse-body
+  margin: 10px
+  /* .filter-form__collapse-header
+    margin-left 15px */
+#search-row
+  padding 15px
+  .vs-con-input-label
+    width 100% !important
+    min-width 200px
+    margin-right 15px
 </style>

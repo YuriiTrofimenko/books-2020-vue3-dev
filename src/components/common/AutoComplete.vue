@@ -9,6 +9,7 @@ div
 import { reactive, computed, watch } from 'vue'
 export default {
   name: 'AutoComplete',
+  // типизация свойств, получаемых извне
   props: {
     options: Array,
     optionsKey: String,
@@ -16,14 +17,18 @@ export default {
     clearHandler: Boolean
   },
   setup(props, ctx) {
+    // локальное состояние компонента
     const state = reactive({
-      userInput: "",
-      selectedItem: {},
-      isSuggestionsShown: false
+      userInput: "", // текст из поля ввода, набранный пользователем или выбранный пользователем из списка
+      selectedItem: {}, // модель пункта, выбранного из списка
+      isSuggestionsShown: false // отображен ли список предлагаемых вариантов
     })
-    const suggestions = computed(() => props.options)
-    const clearHandlerComputed = computed(() => props.clearHandler)
+    // наблюдаемые свойства
+    const suggestions = computed(() => props.options) // список вариантов
+    const clearHandlerComputed = computed(() => props.clearHandler) // флаг старта очистки поля ввода
+    // наблюдатели за фактом изменения значения свойства
     watch(suggestions, (newValue) => {
+      // список предложений не пуст - отображаем область предложений
       if (newValue.length > 0){
         state.isSuggestionsShown = true
       } else {
@@ -31,19 +36,38 @@ export default {
       }
     })
     watch(clearHandlerComputed, (newValue) => {
+      // извне значение свойства clearHandler установлено в true -
+      // очищаем поле ввода и переинициализируем пустым объектом
+      // свойство состояния selectedItem
       if (newValue){
         state.userInput = ""
         state.selectedItem = { }
       }
     })
+    // методы
+    // выбран пункт списка предложений
     function selected (item) {
-      state.userInput = item[props.optionsKey];
+      // по ключу, полученному из внешнего свойства,
+      // извлекаем значение одного из свойств модели пункта списка,
+      // предназначенное для вывода надписи на пункте списка,
+      // и сохранияем набранный текст
+      state.userInput = item[props.optionsKey]
+      // устанавливаем модель выбранного пункта списка в состояние
       state.selectedItem = { userInput: state.userInput, item: item }
+      // скрываем область предложений
       state.isSuggestionsShown = false
+      // выброс события пользовательского типа itemSelected
+      // с аргументом - моделью выбранного пункта
       ctx.emit('item-selected', item)
     }
+    // изменился текст в поле ввода
     function onChange (value) {
+      // перевыброс события для обработки снаружи компонента
+      // new-text - имя пользовательского типа события (newText),
+      // value - значение-аргумент события
       ctx.emit('new-text', value)
+      // сбрасываем в локальном сосотоянии модель выбранного пункта списка,
+      // устанавливаем в состояние набранный текст
       state.selectedItem = { userInput: state.userInput, item: null }
     }
     return {
@@ -56,8 +80,6 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-body
-  font-family sans-serif
 .input
   margin 10px 0px
 .suggestions-card

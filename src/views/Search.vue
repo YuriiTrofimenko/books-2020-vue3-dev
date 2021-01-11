@@ -4,21 +4,47 @@ div
   //-   | Hello!
   //- боковая панель фильтра и сортировки
   el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
+    //- область схлопывающихся панелей
     el-collapse(v-model="state.activeFilterBarItems")
+      //- панель фильтра по месту положения пользователя
       el-collapse-item.filter-form__collapse-body(name='1')
         template(#title)
           .filter-form__collapse-header
             | Регион
             i.header-icon.el-icon-place
-        auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @itemSelected="countryItemSelected" :placeholder="'Выберите страну'" :clearHandler="state.clearCountriesHandler")
-        auto-complete(v-if="state.filter.country.id" :options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @itemSelected="cityItemSelected" :placeholder="'Выберите город'" :clearHandler="state.clearCitiesHandler")
+        //- экземпляры пользовательского компонента - поля ввода текста с автозавершением
+        //- выбор страны
+        auto-complete(
+          :options="suggestedCountries"
+          :optionsKey="state.countryOptionsKey"
+          @newText="countryInputChange"
+          @itemSelected="countryItemSelected"
+          placeholder="Выберите страну"
+          :clearHandler="state.clearCountriesHandler"
+        )
+        //- выбор города
+        auto-complete(
+          v-if="state.filter.country.id"
+          :options="suggestedCities"
+          :optionsKey="state.cityOptionsKey"
+          @newText="cityInputChange"
+          @itemSelected="cityItemSelected"
+          placeholder="Выберите город"
+          :clearHandler="state.clearCitiesHandler"
+        )
+      //- панель фильтра по типу предложения книги
       el-collapse-item.filter-form__collapse-body(name='2')
         template(#title)
           .filter-form__collapse-header
             | Тип предложения
             i.header-icon.el-icon-place
         el-select(v-model='state.filter.type' clearable placeholder="выбрать тип")
-          el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in state.typeOptions')
+          el-option(
+            :key='index'
+            :value='typeOption.value'
+            :label='typeOption.text'
+            v-for='typeOption, index in state.typeOptions'
+          )
       //- el-collapse-item(name='3')
       el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
   el-row#search-row(type='flex' justify='center' align='middle' )

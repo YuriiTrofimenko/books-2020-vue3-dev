@@ -93,7 +93,6 @@ export default ({
         }).then(function (response) {
           if (response.data) {
             const countriesArray = []
-            console.log(response)
             response.data.forEach(country => {
               countriesArray.push(
                 new Country(

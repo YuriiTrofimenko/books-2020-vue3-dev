@@ -43,7 +43,7 @@ div
             :key='index'
             :value='typeOption.value'
             :label='typeOption.text'
-            v-for='typeOption, index in state.typeOptions'
+            v-for='typeOption, index in typeOptions'
           )
       //- el-collapse-item(name='3')
       el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
@@ -73,7 +73,7 @@ div
               el-button(circle icon='el-icon-share')
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted } from 'vue'
+import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted } from 'vue'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
@@ -106,16 +106,24 @@ export default {
       // для запроса на получение или для шаринга в соцсетях
       selectedBookId: null,
       // TODO загружать типы книг с сервера
-      typeOptions: [
-        {text: 'отдам', value: 1},
-        {text: 'дам почитать', value: 2}
-      ],
+      // typeOptions: [
+      //   {text: 'отдам', value: 1},
+      //   {text: 'дам почитать', value: 2}
+      // ],
       activeFilterBarItems: ['1', '2']
     })
     // источник данных о книгах
     const books = computed(() => store.getters.books)
     const suggestedCountries = computed(() => store.getters.countries)
     const suggestedCities = computed(() => store.getters.cities)
+    // eslint-disable-next-line no-unused-vars
+    const typeOptions = computed(() => store.getters.searchTypes.map((item, index, types) =>
+       {return {
+        'text': item.name,
+        'value': item.id
+       }}
+    )) 
+    // const typeOptions = computed(() => store.getters.searchTypes)
     /* watch(() => countries.value, (newVal) => {
       state.suggestedCountries = newVal
       if (newVal[0].data.length === 0) {
@@ -169,6 +177,7 @@ export default {
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
     onMounted(() => {
+      store.dispatch('loadTypes')
       // первый вызов метода получения порции моделей книг
       loadMoreBooks()
       // установка обработчика события прокрутки
@@ -278,7 +287,7 @@ export default {
     }
     return {
       state, // state
-      books, suggestedCountries, suggestedCities, // computed
+      books, suggestedCountries, suggestedCities, typeOptions, // computed
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       applyFilter, showBookDetails, acceptAlert // methods

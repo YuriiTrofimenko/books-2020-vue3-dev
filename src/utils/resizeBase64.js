@@ -1,3 +1,5 @@
+// функция подавления эффекта асинхронности
+// записи изображения в объект Image
 function loadImage(base64) {
   /*
    * We are going to return a Promise which, when we .then
@@ -36,6 +38,8 @@ function loadImage(base64) {
   });
 }
 
+// безымянная функция, экспортируемая как состаляющая модуля по умолчанию
+// (при помощи объектов Image и canvas задает изображению желаемые ограничения ширины и высоты)
 module.exports = async function(base64, maxWidth, maxHeight){
 
   // Max size for thumbnail
@@ -43,16 +47,16 @@ module.exports = async function(base64, maxWidth, maxHeight){
   if(typeof(maxHeight) === 'undefined')  maxHeight = 300
 
   // Create and initialize two canvas
-  var canvas = document.createElement("canvas");
-  var ctx = canvas.getContext("2d");
-  var canvasCopy = document.createElement("canvas");
-  var copyContext = canvasCopy.getContext("2d");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const canvasCopy = document.createElement("canvas");
+  const copyContext = canvasCopy.getContext("2d");
 
   // Create original image
   const img = await loadImage(base64)
   
   // Determine new ratio based on max size
-  var ratio = 1;
+  let ratio = 1;
   if(img.width > maxWidth)
     ratio = maxWidth / img.width;
   else if(img.height > maxHeight)

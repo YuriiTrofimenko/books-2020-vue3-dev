@@ -267,9 +267,9 @@ export default {
     function applyFilter () {
       resetInfiniteBookLoading()
     }
-    function resetInfiniteBookLoading () {
+    async function resetInfiniteBookLoading () {
       // очистка списка моделей книг
-      store.dispatch('clearBooks')
+      await store.dispatch('clearBooks')
       // вызов метода получения порции моделей книг
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()

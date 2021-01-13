@@ -8,7 +8,7 @@ el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
           | Тип предложения
           i.header-icon.el-icon-place
       el-select(v-model='state.filter.type' clearable placeholder="выбрать тип")
-        el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in state.typeOptions')
+        el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
     //- el-collapse-item(name='2')
     el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
 //- диалоговое окно добавления новой книги (по умолчанию скрыто)
@@ -19,12 +19,12 @@ el-dialog(
   width="350px"
 )
   .add-book-dialog-body
-    el-form.add-book-form(:model="state.currentBook" :rules="state.addBookFormRules" ref="state.currentBook")
+    el-form.add-book-form(:model="state.currentBook" :rules="state.addBookFormRules" ref="bookForm")
       el-form-item(label="Название книги" prop="title")
         el-input(placeholder='укажите название' v-model='state.currentBook.title')
       el-form-item(label="Тип"  prop="type")
         el-select(v-model='state.currentBook.type' clearable placeholder="выбрать тип")
-          el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in state.typeOptions')
+          el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
       el-form-item(label="Язык(и)" prop="language")
         el-input(placeholder='укажите язык(и) текста' v-model='state.currentBook.language')
       el-form-item(label="Автор(ы)")
@@ -53,9 +53,10 @@ el-dialog(
             el-input(placeholder='укажите жанр' v-model='state.currentBook.genre')
   template(#footer)
     span.dialog-footer
-      el-button(@click="state.addBookDialogVisible = false") Cancel
-      el-button(type="primary" @click="addBookDialogOk") Add
+      el-button(@click="state.addBookDialogVisible = false") Отмена
+      el-button(type="primary" @click="addBookDialogOk") Добавить
 //- заголовок раздела с кнопкой открытия диалога добавления новой книги
+//- и с кнопкой открытия панели фильтра
 el-row(type="flex" justify="center" align="center")
   el-col(:span="12")
     h1 Мои книги
@@ -82,10 +83,9 @@ el-row(type="flex" justify="center" align="center")
             h3
               span {{book.title}}
               span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
-            h4(v-if='book.author') {{book.author}}
-            h4(v-else) -
+            h4(v-if='book.author') автор: {{book.author}}
+            h4(v-else) автор: -
             span(v-if='book.description') {{book.description}}
-            span(v-else) -
             div(v-if='book.genre')
               strong жанр:&nbsp;
               span {{book.genre}}
@@ -95,7 +95,7 @@ el-row(type="flex" justify="center" align="center")
           el-button(circle icon='el-icon-share' @click='startBookShare(book.id)')
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
 import FilePreview from '../components/common/FilePreview'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
@@ -105,6 +105,8 @@ export default {
   setup () {
     const app = getCurrentInstance()
     const notify = app.appContext.config.globalProperties.$notify
+    // ссылка на форму добавления / редактирования описания книги
+    const bookForm = ref(null)
     const state = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
       addBookDialogVisible: false,
@@ -117,7 +119,6 @@ export default {
         author: '',
         genre: '',
         description: '',
-        counterDanger: false,
         country: {
           id: null,
           name: ''
@@ -154,11 +155,11 @@ export default {
       clearCountriesHandler: false,
       clearCitiesHandler: false,
       // TODO загружать типы книг с сервера
-      typeOptions: [
+      /* typeOptions: [
         {text: 'отдам', value: 1},
         {text: 'дам почитать', value: 2},
         {text: 'личная', value: 3}
-      ],
+      ], */
       // статус отправки данных о новой/редактируемой книге на сервер
       submitStatus: '',
       // Флаг факта изменения списка книг после очередного срабатывания догрузки
@@ -185,6 +186,13 @@ export default {
     const currentBookType = computed(() => state.currentBook.type)
     // 
     const books = computed(() => store.getters.myBooks)
+    // eslint-disable-next-line no-unused-vars
+    const typeOptions = computed(() => store.getters.types.map((item, index, types) =>
+       {return {
+        'text': item.name,
+        'value': item.id
+       }}
+    )) 
     /* watch(books, (newValue) => {
       if (newValue.length > 0){
         state.isSuggestionsShown = true
@@ -203,6 +211,7 @@ export default {
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
     onMounted(() => {
+      store.dispatch('loadTypes')
       // первый вызов метода получения порции моделей книг
       loadMoreBooks()
       // установка обработчика события прокрутки
@@ -297,160 +306,174 @@ export default {
     // обработчик клика по кнопке "Ок"
     // в диалоговом окне добавления новой книги
     async function addBookDialogOk () {
-      // если названия страны и/или города - новые -
-      // добавляем в БД записи о них
-      if (!state.currentBook.country.id) {
-        await store.dispatch('newCountry', {
-          name: state.currentBook.country.name
-        })
-          .then(() => {
-            state.currentBook.country.id = store.getters.newCountryId
-            state.submitStatus = 'OK'
-          })
-          .catch(err => {
-            state.submitStatus = err.message
-          })
+      // const bookFormElement = document.querySelector('.el-form')
+      // console.log(bookFormElement)
+      console.log(bookForm)
+      // проверка валидности формы
+      let validationResults = false
+      try{
+        validationResults = await bookForm.value.validate()
+      } catch (ex) {
+        console.log(ex)
       }
-      if (!state.currentBook.city.id) {
-        await store.dispatch('newCity', {
-          name: state.currentBook.city.name,
-          countryId: state.currentBook.country.id
-        })
-          .then(() => {
-            state.currentBook.city.id = store.getters.newCityId
-            state.submitStatus = 'OK'
+      console.log('validationResults', validationResults)
+      // если все поля валидны
+      if(validationResults) {
+        // если названия страны и/или города - новые -
+        // добавляем в БД записи о них
+        if (!state.currentBook.country.id) {
+          await store.dispatch('newCountry', {
+            name: state.currentBook.country.name
           })
-          .catch(err => {
-            state.submitStatus = err.message
+            .then(() => {
+              state.currentBook.country.id = store.getters.newCountryId
+              state.submitStatus = 'OK'
+            })
+            .catch(err => {
+              state.submitStatus = err.message
+            })
+        }
+        if (!state.currentBook.city.id) {
+          await store.dispatch('newCity', {
+            name: state.currentBook.city.name,
+            countryId: state.currentBook.country.id
           })
-      }
-      // Создание новой книги,
-      // если у текущей книги отсутствует идентификатор,
-      // то есть ее описание еще не было добавлено в БД
-      const bookTitle = state.currentBook.title
-      if (!state.selectedBookId) {
-        store.dispatch('newBook', {
-          title: state.currentBook.title,
-          author: state.currentBook.author,
-          genre: state.currentBook.genre,
-          publisher: state.currentBook.publisher,
-          volumeOrIssue: state.currentBook.volumeOrIssue,
-          description: state.currentBook.description,
-          country: state.currentBook.country.id,
-          city: state.currentBook.city.id,
-          type: state.currentBook.type,
-          language: state.currentBook.language,
-          publicationDate: state.currentBook.publicationDate,
-          image: state.currentBook.image,
-          active: state.currentBook.active
-        })
-          .then(() => {
-            for (const key in state.currentBook) {
-              // очистка значений всех свойств модели текущей книги
-              // if (state.currentBook.hasOwnProperty(key)) {
-              if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
-                state.currentBook[key] = ''
+            .then(() => {
+              state.currentBook.city.id = store.getters.newCityId
+              state.submitStatus = 'OK'
+            })
+            .catch(err => {
+              state.submitStatus = err.message
+            })
+        }
+        // Создание новой книги,
+        // если у текущей книги отсутствует идентификатор,
+        // то есть ее описание еще не было добавлено в БД
+        const bookTitle = state.currentBook.title
+        if (!state.selectedBookId) {
+          store.dispatch('newBook', {
+            title: state.currentBook.title,
+            author: state.currentBook.author,
+            genre: state.currentBook.genre,
+            publisher: state.currentBook.publisher,
+            volumeOrIssue: state.currentBook.volumeOrIssue,
+            description: state.currentBook.description,
+            country: state.currentBook.country.id,
+            city: state.currentBook.city.id,
+            type: state.currentBook.type,
+            language: state.currentBook.language,
+            publicationDate: state.currentBook.publicationDate,
+            image: state.currentBook.image,
+            active: state.currentBook.active
+          })
+            .then(() => {
+              for (const key in state.currentBook) {
+                // очистка значений всех свойств модели текущей книги
+                // if (state.currentBook.hasOwnProperty(key)) {
+                if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
+                  state.currentBook[key] = ''
+                }
+                // скрытие диалога добавления новой книги
+                state.addBookDialogVisible = false
               }
-              // скрытие диалога добавления новой книги
-              state.addBookDialogVisible = false
-            }
-            // повторная инициализация свойств модели текущей книги
-            // со сложными значениями
-            state.currentBook.country = {
-              id: null,
-              name: ''
-            }
-            state.currentBook.city = {
-              id: null,
-              name: '',
-              countryId: null
-            }
-            // уведомление пользователя об успешном добавлении
-            // описания книги
-            if (!store.getters.error) {
-              notify({
-                type: 'success',
-                title: 'Действие выполнено',
-                message: `Описание книги "${bookTitle}" добавлено`
-              })
-            } else {
+              // повторная инициализация свойств модели текущей книги
+              // со сложными значениями
+              state.currentBook.country = {
+                id: null,
+                name: ''
+              }
+              state.currentBook.city = {
+                id: null,
+                name: '',
+                countryId: null
+              }
+              // уведомление пользователя об успешном добавлении
+              // описания книги
+              if (!store.getters.error) {
+                notify({
+                  type: 'success',
+                  title: 'Действие выполнено',
+                  message: `Описание книги "${bookTitle}" добавлено`
+                })
+              } else {
+                notify({
+                  type: 'error',
+                  title: 'Ошибка',
+                  message: `Ошибка добавления книги "${bookTitle}": ${store.getters.error}`
+                })
+              }
+              state.submitStatus = 'OK'
+            })
+            .catch(err => {
+              state.submitStatus = err.message
+              // уведомление пользователя об успешном добавлении
+              // описания книги
               notify({
                 type: 'error',
                 title: 'Ошибка',
-                message: `Ошибка добавления книги "${bookTitle}": ${store.getters.error}`
+                message: `Ошибка добавления книги "${bookTitle}": ${state.submitStatus}`
               })
-            }
-            state.submitStatus = 'OK'
-          })
-          .catch(err => {
-            state.submitStatus = err.message
-            // уведомление пользователя об успешном добавлении
-            // описания книги
-            notify({
-              type: 'error',
-              title: 'Ошибка',
-              message: `Ошибка добавления книги "${bookTitle}": ${state.submitStatus}`
             })
+        } else {
+          // Редактирование выбранной книги
+          store.dispatch('editBook', {
+            title: state.currentBook.title,
+            author: state.currentBook.author,
+            genre: state.currentBook.genre,
+            publisher: state.currentBook.publisher,
+            volumeOrIssue: state.currentBook.volumeOrIssue,
+            description: state.currentBook.description,
+            country: state.currentBook.country.id,
+            city: state.currentBook.city.id,
+            type: state.currentBook.type,
+            language: state.currentBook.language,
+            publicationDate: state.currentBook.publicationDate,
+            image: state.currentBook.image,
+            active: state.currentBook.active,
+            id: state.selectedBookId
           })
-      } else {
-        // Редактирование выбранной книги
-        store.dispatch('editBook', {
-          title: state.currentBook.title,
-          author: state.currentBook.author,
-          genre: state.currentBook.genre,
-          publisher: state.currentBook.publisher,
-          volumeOrIssue: state.currentBook.volumeOrIssue,
-          description: state.currentBook.description,
-          country: state.currentBook.country.id,
-          city: state.currentBook.city.id,
-          type: state.currentBook.type,
-          language: state.currentBook.language,
-          publicationDate: state.currentBook.publicationDate,
-          image: state.currentBook.image,
-          active: state.currentBook.active,
-          id: state.selectedBookId
-        })
-          .then(() => {
-            for (const key in state.currentBook) {
-              if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
-                state.currentBook[key] = ''
+            .then(() => {
+              for (const key in state.currentBook) {
+                if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
+                  state.currentBook[key] = ''
+                }
               }
-            }
-            state.currentBook.country = {
-              id: null,
-              name: ''
-            }
-            state.currentBook.city = {
-              id: null,
-              name: '',
-              countryId: null
-            }
-            if (!store.getters.error) {
-              notify({
-                type: 'success',
-                title: 'Действие выполнено',
-                message: `Описание книги "${bookTitle}" обновлено`
-              })
-            } else {
+              state.currentBook.country = {
+                id: null,
+                name: ''
+              }
+              state.currentBook.city = {
+                id: null,
+                name: '',
+                countryId: null
+              }
+              if (!store.getters.error) {
+                notify({
+                  type: 'success',
+                  title: 'Действие выполнено',
+                  message: `Описание книги "${bookTitle}" обновлено`
+                })
+              } else {
+                notify({
+                  type: 'error',
+                  title: 'Ошибка',
+                  message: `Ошибка обновления книги "${bookTitle}": ${store.getters.error}`
+                })
+              }
+              state.submitStatus = 'OK'
+            })
+            .catch(err => {
+              state.submitStatus = err.message
               notify({
                 type: 'error',
                 title: 'Ошибка',
-                message: `Ошибка обновления книги "${bookTitle}": ${store.getters.error}`
+                message: `Ошибка обновления книги "${bookTitle}": ${state.submitStatus}`
               })
-            }
-            state.submitStatus = 'OK'
-          })
-          .catch(err => {
-            state.submitStatus = err.message
-            notify({
-              type: 'error',
-              title: 'Ошибка',
-              message: `Ошибка обновления книги "${bookTitle}": ${state.submitStatus}`
             })
-          })
-          .finally(() => {
-            state.selectedBookId = null
-          })
+            .finally(() => {
+              state.selectedBookId = null
+            })
+        }
       }
     }
     // метод для вызова каждый раз, когда нужно получить
@@ -503,13 +526,14 @@ export default {
     return {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
-      currentBookType, books, // computed
+      currentBookType, books, typeOptions, // computed
       countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       yearInputChange,
       onNewBookImagePreview,
       addBookDialogClosedHandler, addBookDialogOk,
-      onSearchInputChange, applyFilter // methods
+      onSearchInputChange, applyFilter, // methods
+      bookForm // refs
     }
   }
 }

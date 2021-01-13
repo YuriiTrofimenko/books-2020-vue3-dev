@@ -55,6 +55,17 @@ el-dialog(
     span.dialog-footer
       el-button(@click="state.addBookDialogVisible = false") Отмена
       el-button(type="primary" @click="addBookDialogOk") Добавить
+//- диалоговое окно детальной информации о книге, выбранной из сетки
+el-dialog(
+  v-model="state.bookDetailsDialogVisible"
+  @closed="bookDitailsDialogClosedHandler"
+)
+  book-details-card(
+    :book="state.selectedBook"
+    :startBookEdit="() => startBookEdit(state.selectedBook.id)"
+    :startBookDelete="() => startBookDelete(state.selectedBook.id)"
+    :startBookShare="() => startBookShare(state.selectedBook.id)"
+  )
 //- заголовок раздела с кнопкой открытия диалога добавления новой книги
 //- и с кнопкой открытия панели фильтра
 el-row(type="flex" justify="center" align="center")
@@ -73,14 +84,14 @@ el-row(type="flex" justify="center" align="center")
     el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
       el-card
         el-row(type='flex' justify='start' align='middle' :gutter="5")
-          el-col(:span="10" v-bind:style="{ 'text-align': 'center' }")
+          el-col(:span="10" v-bind:style="{ 'text-align': 'center' }" @click="() => onBookClicked(book)")
             el-image.card-image(v-if='book.image' :src='book.image' fit="cover")
             el-image.card-image(v-else src='' fit="cover")
               template(#error)
                 div.image-slot
                   img.card-image(src="../assets/no_image.png")
           el-col(:span="14" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }")
-            h3
+            h3(@click="() => onBookClicked(book)")
               span {{book.title}}
               span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
             h4(v-if='book.author') автор: {{book.author}}
@@ -97,11 +108,12 @@ el-row(type="flex" justify="center" align="center")
 <script>
 import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
 import FilePreview from '../components/common/FilePreview'
+import BookDetailsCard from './myBooks/BookDetailsCard'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
   name: 'MyBooks',
-  components: { AutoComplete, FilePreview },
+  components: { AutoComplete, FilePreview, BookDetailsCard },
   setup () {
     const app = getCurrentInstance()
     const notify = app.appContext.config.globalProperties.$notify
@@ -162,6 +174,10 @@ export default {
       ], */
       // статус отправки данных о новой/редактируемой книге на сервер
       submitStatus: '',
+      // Флаг отображения окна детализации книги
+      bookDetailsDialogVisible: false,
+      // книга, выбранная для детализации
+      selectedBook: null,
       // Флаг факта изменения списка книг после очередного срабатывания догрузки
       // бесконечным скроллом
       isBooksListChanged: false,
@@ -500,6 +516,30 @@ export default {
           console.log(err)
         })
     }
+    // обработчик клика по изображению или заголовку на карточке книги в сетке
+    function onBookClicked (book) {
+      // установка модели выбранной книги в стостояние
+      state.selectedBook = book
+      // отображение окна детализации книги
+      state.bookDetailsDialogVisible = true
+    }
+    // обработчик закрытия окна детализации книги
+    function bookDitailsDialogClosedHandler () {
+      // зануление модели выбранной книги в стостояние
+      state.selectedBook = null
+    }
+    // обработчик запуска редактирования выбранной книги
+    function startBookEdit (bookId) {
+      console.log(startBookEdit, bookId)
+    }
+    // обработчик запуска диалога удаления выбранной книги
+    function startBookDelete (bookId) {
+      console.log(startBookDelete, bookId)
+    }
+    // обработчик запуска панели шаринга в соцсети информации о выбранной книге
+    function startBookShare (bookId) {
+      console.log(startBookShare, bookId)
+    }
     // обработчик прокрутки страницы до низа
     const handleScroll = () => {
       if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
@@ -532,6 +572,8 @@ export default {
       yearInputChange,
       onNewBookImagePreview,
       addBookDialogClosedHandler, addBookDialogOk,
+      onBookClicked, bookDitailsDialogClosedHandler,
+      startBookEdit, startBookDelete, startBookShare,
       onSearchInputChange, applyFilter, // methods
       bookForm // refs
     }

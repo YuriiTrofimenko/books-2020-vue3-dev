@@ -145,7 +145,6 @@ export default ({
           'id': null,
           'updatedAt': null
         }
-        console.log(newBookData)
         // Адрес добавления книги на сервер
         const url = getters.baseRestApiUrl + '?controller=book&action=create'
         const requestData = {

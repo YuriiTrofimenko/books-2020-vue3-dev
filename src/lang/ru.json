@@ -1,0 +1,11 @@
+{
+    "base": {
+        "header": {
+            "signInButton": "Вход",
+            "signOutButton": "Выйти"
+        }
+    },
+    "home": {
+        "title": "Главная"
+    }
+}

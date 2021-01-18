@@ -8,6 +8,17 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
         :index="index.toString()"
     )
         router-link( :to="`${link.url}`" ) {{ link.title }}
+    el-menu-item
+      span.lang-icon(
+        @click="setLocale('en')"
+        :class="{ 'active-lang': this.$i18n.locale === 'en' }"
+      )
+        flag(:iso="'gb'")
+      span.lang-icon(
+        @click="setLocale('ru')"
+        :class="{ 'active-lang': this.$i18n.locale === 'ru' }"
+      )
+        flag(:iso="'ru'")
     // меню учетной записи, если пользователь аутентифицирован
     el-menu-item(v-if="checkUser")
         el-dropdown
@@ -22,15 +33,19 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
                     el-dropdown-item(divided='' @click='signOut') SignOut
     // ссылка на раздел аутентификации, если пользователь не аутентифицирован
     el-menu-item(v-else)
-        router-link(:to="'/google-auth'" ) SignIn
+        router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
 </template>
 <script>
-import { reactive, computed } from 'vue'
+import { reactive, computed, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from "vue3-i18n"
 import store from '../../store'
 export default {
     name: 'Header',
     setup () {
+        const app = getCurrentInstance()
+        const t = app.appContext.config.globalProperties.$t
+        const i18n = useI18n()
         const router = useRouter()
         const state = reactive({
             menuShow: false,
@@ -72,10 +87,13 @@ export default {
               router.push('/')
             })
         }
+        function setLocale (lang) {
+          i18n.setLocale(lang)
+        }
         return {
             state, // состояние
             checkUser, userData, isLoading, linkMenu, // вычисляемые свойства
-            signOut // методы
+            signOut, t, setLocale // методы
         }
     }
 }

@@ -10,7 +10,10 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 
-const app = createApp(App).use(store).use(router).use(ElementPlus)
+import {i18n} from './utils/i18n'
+import FlagIcon from 'vue-flag-icon'
+
+const app = createApp(App).use(store).use(router).use(ElementPlus).use(i18n).use(FlagIcon)
 // активация клиентской логики firebase
 firebase.initializeApp(firebaseConfig)
 // начало сбора статистики использования фронтенда клиентами

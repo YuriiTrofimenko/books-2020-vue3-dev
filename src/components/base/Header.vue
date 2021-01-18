@@ -11,12 +11,12 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
     el-menu-item
       span.lang-icon(
         @click="setLocale('en')"
-        :class="{ 'active-lang': this.$i18n.locale === 'en' }"
+        :class="{ 'active-lang': i18n.getLocale() === 'en' }"
       )
         flag(:iso="'gb'")
       span.lang-icon(
         @click="setLocale('ru')"
-        :class="{ 'active-lang': this.$i18n.locale === 'ru' }"
+        :class="{ 'active-lang': i18n.getLocale() === 'ru' }"
       )
         flag(:iso="'ru'")
     // меню учетной записи, если пользователь аутентифицирован
@@ -46,6 +46,7 @@ export default {
         const app = getCurrentInstance()
         const t = app.appContext.config.globalProperties.$t
         const i18n = useI18n()
+        console.log('i18n = ', i18n)
         const router = useRouter()
         const state = reactive({
             menuShow: false,
@@ -93,12 +94,18 @@ export default {
         return {
             state, // состояние
             checkUser, userData, isLoading, linkMenu, // вычисляемые свойства
-            signOut, t, setLocale // методы
+            signOut, t, setLocale, // методы
+            i18n
         }
     }
 }
 </script>
 <style scoped lang="stylus">
 .is-active
-    font-weight bold
+  font-weight bold
+.lang-icon
+  margin-left 5px
+  margin-right 5px
+.active-lang
+  border 4px double green
 </style>

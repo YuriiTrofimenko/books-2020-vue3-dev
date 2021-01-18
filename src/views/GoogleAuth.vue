@@ -24,20 +24,18 @@ export default {
         ui = new firebaseui.auth.AuthUI(firebase.auth())
       }
       ui.start('#firebaseui-auth-container', uiConfig) */
-      setTimeout(async () => {
-        if (!checkUser.value) {
-          const provider = new firebase.auth.GoogleAuthProvider()
-          provider.addScope('profile')
-          provider.addScope('email')
-          provider.addScope('openid')
-          try {
-            await firebase.auth().signInWithPopup(provider)
-            // await firebase.auth().signInWithRedirect(provider)
-          } catch (ex) {
-            console.log(ex)
-          }
+      if (!checkUser.value) {
+        const provider = new firebase.auth.GoogleAuthProvider()
+        provider.addScope('profile')
+        provider.addScope('email')
+        provider.addScope('openid')
+        try {
+          firebase.auth().signInWithPopup(provider)
+          // await firebase.auth().signInWithRedirect(provider)
+        } catch (ex) {
+          console.log(ex)
         }
-      }, 1000)
+      }
     })
     return {
       checkUser

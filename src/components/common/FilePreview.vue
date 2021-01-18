@@ -11,9 +11,13 @@ import { computed, reactive, ref } from 'vue'
 import resizebase64 from '../../utils/resizeBase64'
 export default {
   name: 'FilePreview',
+  props: {
+    initialImage: String,
+    selectImageSetter: Function
+  },
   setup (props, ctx) {
     const state = reactive({
-      previewImage: null
+      previewImage: props.initialImage
     })
     // объявление объекта-оболочки для ссылки на элемент разметки "выбор файла"
     const fileInput = ref(null)
@@ -53,9 +57,22 @@ export default {
         reader.readAsDataURL(file[0])
       }
     }
+    function reset () {
+      state.previewImage = ''
+      ctx.emit('input', '')
+    }
+    // вызов метода установки анонимного метода приема изображения извне
+    // для родительского компонента;
+    // при помощи установленного метода родительский компонент
+    // сможет в любой момент принудительно установить изображение
+    // в поле ввода данного компонента
+    props.selectImageSetter((newImageBase64) => {
+      state.previewImage = newImageBase64
+      ctx.emit('input', newImageBase64)
+    })
     return {
       state, // state
-      selectImage, pickFile, // methods
+      selectImage, pickFile, reset,// methods
       fileInput, // refs
       previewImage // computed
     }

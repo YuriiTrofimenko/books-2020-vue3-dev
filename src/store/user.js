@@ -1,10 +1,11 @@
 import firebase from 'firebase/app'
 import User from './models/UserModel'
-
+const demoUser = new User('pJXqEFAmUSR3EEvznLL3PO8HJpm1', 'Yurii Trofimenko', '', 'tyaamariupol@gmail.com')
 export default {
   // состояние с наблюдаемыми свойствами
   state: {
-    user: null
+    // user: null
+    user: demoUser
   },
   // методы изменения состояния
   mutations: {

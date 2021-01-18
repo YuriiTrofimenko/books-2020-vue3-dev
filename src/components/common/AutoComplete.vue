@@ -6,7 +6,7 @@ div
 </template>
 
 <script>
-import { reactive, computed, watch } from 'vue'
+import { reactive, computed, watch, /* onMounted  */ /* , toRefs */ } from 'vue'
 export default {
   name: 'AutoComplete',
   // типизация свойств, получаемых извне
@@ -14,12 +14,16 @@ export default {
     options: Array,
     optionsKey: String,
     placeholder: String,
-    clearHandler: Boolean
+    clearHandler: Boolean,
+    selectItemSetter: Function
   },
   setup(props, ctx) {
+    // локальная переменная для временного хранения текста,
+    // полученного извне
+    let setItemText = ''
     // локальное состояние компонента
     const state = reactive({
-      userInput: "", // текст из поля ввода, набранный пользователем или выбранный пользователем из списка
+      userInput: '', // текст из поля ввода, набранный пользователем или выбранный пользователем из списка
       selectedItem: {}, // модель пункта, выбранного из списка
       isSuggestionsShown: false // отображен ли список предлагаемых вариантов
     })
@@ -28,11 +32,19 @@ export default {
     const clearHandlerComputed = computed(() => props.clearHandler) // флаг старта очистки поля ввода
     // наблюдатели за фактом изменения значения свойства
     watch(suggestions, (newValue) => {
-      // список предложений не пуст - отображаем область предложений
-      if (newValue.length > 0){
-        state.isSuggestionsShown = true
-      } else {
-        state.isSuggestionsShown = false
+      if(!setItemText) {
+        // список предложений не пуст - отображаем область предложений
+        if (newValue.length > 0){
+          state.isSuggestionsShown = true
+        } else {
+          state.isSuggestionsShown = false
+        }
+       } else {
+        // если получение списка предложений произошло как следствие
+        // передачи текста поля ввода извне -
+        // вызываем обратчик события выбора пункта предложения вручную
+        selected(suggestions.value.find(s => s.name === setItemText))
+        setItemText = ''
       }
     })
     watch(clearHandlerComputed, (newValue) => {
@@ -70,10 +82,27 @@ export default {
       // устанавливаем в состояние набранный текст
       state.selectedItem = { userInput: state.userInput, item: null }
     }
+    // вызов метода установки анонимного метода приема текста извне
+    // для родительского компонента;
+    // при помощи установленного метода родительский компонент
+    // сможет в любой момент принудительно установить текст
+    // в поле ввода данного компонента
+    // путем запуска цепной реакции получения списка вариантов
+    // и выбора заданного варианта 
+    props.selectItemSetter((newText) => {
+      // сохранение текста, полученного извне,
+      // в локальной переменной компонента
+      setItemText = newText
+      onChange (newText)
+    })
+    function reset () {
+      state.userInput = ""
+      state.selectedItem = { }
+    }
     return {
       state,
       suggestions,
-      selected, onChange
+      selected, onChange, reset
     }
   }
 }

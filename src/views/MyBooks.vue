@@ -13,8 +13,9 @@ el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
     el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
 //- диалоговое окно добавления новой книги (по умолчанию скрыто)
 el-dialog(
-  title="Добавить книгу"
+  :title="(state.selectedBookId) ? 'Изменить описание' : 'Добавить книгу'"
   v-model="state.addBookDialogVisible"
+  @opened="addBookDialogOpenedHandler"
   @closed="addBookDialogClosedHandler"
   width="350px"
 )
@@ -30,11 +31,36 @@ el-dialog(
       el-form-item(label="Автор(ы)")
         el-input(placeholder='укажите автора' v-model='state.currentBook.author')
       el-form-item(label="Ваша страна" prop="country")
-        auto-complete(:options="suggestedCountries" :optionsKey="state.countryOptionsKey" @newText="countryInputChange" @itemSelected="countryItemSelected" :placeholder="'выберите страну'" :clearHandler="state.clearCountriesHandler")
+        auto-complete(
+          :options="suggestedCountries"
+          :optionsKey="state.countryOptionsKey"
+          @newText="countryInputChange"
+          @itemSelected="countryItemSelected"
+          :placeholder="'выберите страну'"
+          :clearHandler="state.clearCountriesHandler"
+          ref="countryAutoComplete"
+          :selectItemSetter="selectCountryAction => state.selectCountryAction = selectCountryAction"
+          @setup="selectCountryAction => state.selectCountryAction = selectCountryAction"
+        )
       el-form-item(v-if="state.currentBook.country.name"  label="Ваш город"  prop="city")
-        auto-complete(:options="suggestedCities" :optionsKey="state.cityOptionsKey" @newText="cityInputChange" @itemSelected="cityItemSelected" :placeholder="'выберите город'" :clearHandler="state.clearCitiesHandler")
+        auto-complete(
+          :options="suggestedCities"
+          :optionsKey="state.cityOptionsKey"
+          @newText="cityInputChange"
+          @itemSelected="cityItemSelected"
+          :placeholder="'выберите город'"
+          :clearHandler="state.clearCitiesHandler"
+          ref="cityAutoComplete"
+          :selectItemSetter="selectCityAction => state.selectCityAction = selectCityAction"
+          @setup="selectCityAction => state.selectCityAction = selectCityAction"
+        )
       el-form-item(label="Изображение")
-        file-preview(@input="onNewBookImagePreview")
+        file-preview(
+          ref="filePreviewRef"
+          :initialImage="state.currentBook.image"
+          @input="onNewBookImagePreview"
+          :selectImageSetter="selectImageAction => state.selectImageAction = selectImageAction"
+        )
       el-form-item(v-if="currentBookType === 1 || currentBookType === 2" label="Активность")
         el-checkbox(v-model="state.currentBook.active") Отображать в поиске
       el-collapse
@@ -53,7 +79,7 @@ el-dialog(
             el-input(placeholder='укажите жанр' v-model='state.currentBook.genre')
   template(#footer)
     span.dialog-footer
-      el-button(@click="state.addBookDialogVisible = false") Отмена
+      el-button(@click="addBookDialogCancel") Отмена
       el-button(type="primary" @click="addBookDialogOk") Добавить
 //- диалоговое окно детальной информации о книге, выбранной из сетки
 el-dialog(
@@ -73,7 +99,7 @@ el-row(type="flex" justify="center" align="center")
     h1 Мои книги
   el-col(:span="6" :offset="6" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
     el-tooltip(content="Добавить книгу" placement="bottom" effect="light")
-      el-button(@click="state.addBookDialogVisible = true")
+      el-button(@click="startBookAdd")
         i.el-icon-plus
     el-tooltip(content="Фильтр" placement="bottom" effect="light")
       el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
@@ -101,7 +127,7 @@ el-row(type="flex" justify="center" align="center")
               strong жанр:&nbsp;
               span {{book.genre}}
         el-row(justify='flex-end')
-          el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-edit' @click='startBookEdit(book.id)')
+          el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-edit' @click='() => startBookEdit(book.id)')
           el-button(circle icon='el-icon-delete' @click='startBookDelete(book.id)')
           el-button(circle icon='el-icon-share' @click='startBookShare(book.id)')
 </template>
@@ -115,11 +141,18 @@ export default {
   name: 'MyBooks',
   components: { AutoComplete, FilePreview, BookDetailsCard },
   setup () {
+    let editedBookCountryName = ''
+    let editedBookCityName = ''
+    let editedBookImage = ''
+    let addBookFormShouldReset = false
     const app = getCurrentInstance()
     const notify = app.appContext.config.globalProperties.$notify
     // ссылка на форму добавления / редактирования описания книги
     const bookForm = ref(null)
-    const state = reactive({
+    const countryAutoComplete = ref(null)
+    const cityAutoComplete = ref(null)
+    const filePreviewRef = ref(null)
+    const initialState = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
       addBookDialogVisible: false,
       // Данные описания книги, которое создается или редактируется
@@ -191,8 +224,12 @@ export default {
         type: null
       },
       filterBarActive: false,
-      activeFilterBarItems: ['1']
+      activeFilterBarItems: ['1'],
+      selectCountryAction: null,
+      selectCityAction: null,
+      selectImageAction: null
     })
+    const state = reactive({ ...initialState })
     // Массивы данных автодополнения для полей ввода страны и города
     // const currentBookTitle = computed(() => state.currentBook.title)
     const suggestedCountries = computed(() => store.getters.countries)
@@ -208,7 +245,7 @@ export default {
         'text': item.name,
         'value': item.id
        }}
-    )) 
+    ))
     /* watch(books, (newValue) => {
       if (newValue.length > 0){
         state.isSuggestionsShown = true
@@ -253,10 +290,11 @@ export default {
       }
       clearCities()
       // загрузка списка городов выбранной страны
-      store.dispatch('loadCities', {
-        startsWith: '',
-        countryId: state.currentBook.country.id
-      })
+      console.log('editedBookCityName', editedBookCityName)
+      if(editedBookCityName) {
+        state.selectCityAction(editedBookCityName)
+        editedBookCityName = ''
+      }
     }
     // если пользователь начал набирать название страны
     async function countryInputChange (inputText) {
@@ -319,12 +357,26 @@ export default {
     function addBookDialogClosedHandler () {
       console.log(state.currentBook)
     }
+    function addBookDialogOpenedHandler () {
+      if(editedBookCountryName){
+        setTimeout(() => {
+          if(addBookFormShouldReset) {
+            // resetAddBookDialog()
+            addBookFormShouldReset = false
+          }
+          state.selectCountryAction(editedBookCountryName)
+          editedBookCountryName = ''
+          if (editedBookImage) {
+            state.selectImageAction(editedBookImage)
+            editedBookImage = ''
+          }
+        }, 1500)
+      }
+    }
     // обработчик клика по кнопке "Ок"
     // в диалоговом окне добавления новой книги
     async function addBookDialogOk () {
-      // const bookFormElement = document.querySelector('.el-form')
-      // console.log(bookFormElement)
-      console.log(bookForm)
+      // console.log(bookForm)
       // проверка валидности формы
       let validationResults = false
       try{
@@ -332,7 +384,7 @@ export default {
       } catch (ex) {
         console.log(ex)
       }
-      console.log('validationResults', validationResults)
+      // console.log('validationResults', validationResults)
       // если все поля валидны
       if(validationResults) {
         // если названия страны и/или города - новые -
@@ -383,18 +435,18 @@ export default {
             active: state.currentBook.active
           })
             .then(() => {
-              for (const key in state.currentBook) {
+              /* for (const key in state.currentBook) {
                 // очистка значений всех свойств модели текущей книги
                 // if (state.currentBook.hasOwnProperty(key)) {
                 if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
                   state.currentBook[key] = ''
                 }
                 // скрытие диалога добавления новой книги
-                state.addBookDialogVisible = false
-              }
+                // state.addBookDialogVisible = false
+              } */
               // повторная инициализация свойств модели текущей книги
               // со сложными значениями
-              state.currentBook.country = {
+              /* state.currentBook.country = {
                 id: null,
                 name: ''
               }
@@ -402,7 +454,9 @@ export default {
                 id: null,
                 name: '',
                 countryId: null
-              }
+              } */
+              // console.log('state.currentBook', state.currentBook)
+              // console.log('bookForm.value.resetFields', bookForm.value.resetFields)
               // уведомление пользователя об успешном добавлении
               // описания книги
               if (!store.getters.error) {
@@ -430,6 +484,10 @@ export default {
                 message: `Ошибка добавления книги "${bookTitle}": ${state.submitStatus}`
               })
             })
+            .finally(() => {
+              // скрытие диалога добавления книги
+              state.addBookDialogVisible = false
+            })
         } else {
           // Редактирование выбранной книги
           store.dispatch('editBook', {
@@ -449,9 +507,14 @@ export default {
             id: state.selectedBookId
           })
             .then(() => {
-              for (const key in state.currentBook) {
+              /* for (const key in state.currentBook) {
+                console.log('key', key)
+                console.log('hasOwnProperty', Object.prototype.hasOwnProperty.call(state.currentBook, key))
+                console.log('state.currentBook[key]', state.currentBook[key])
                 if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
                   state.currentBook[key] = ''
+                  console.log('state.currentBook', state.currentBook)
+                  console.log('state.currentBook[key]', state.currentBook[key])
                 }
               }
               state.currentBook.country = {
@@ -463,6 +526,9 @@ export default {
                 name: '',
                 countryId: null
               }
+              console.log('state.currentBook', state.currentBook)
+              console.log('bookForm.value.resetFields', bookForm.value.resetFields)
+              bookForm.value.resetFields() */
               if (!store.getters.error) {
                 notify({
                   type: 'success',
@@ -487,10 +553,18 @@ export default {
               })
             })
             .finally(() => {
+              // переключение диалога работы с книгой в режим добавления новой
               state.selectedBookId = null
+              // скрытие диалога добавления книги
+              state.addBookDialogVisible = false
             })
         }
       }
+    }
+    // 
+    function addBookDialogCancel () {
+      // resetAddBookDialog()
+      state.addBookDialogVisible = false
     }
     // метод для вызова каждый раз, когда нужно получить
     // очередную порцию моделей книг для заполнения сетки
@@ -528,9 +602,67 @@ export default {
       // зануление модели выбранной книги в стостояние
       state.selectedBook = null
     }
+    // 
+    function startBookAdd () {
+
+      if (bookForm.value) {
+        bookForm.value.resetFields()
+      }
+
+      state.currentBook.title = ''
+      state.currentBook.type = ''
+      state.currentBook.genre = ''
+      state.currentBook.publisher = ''
+      state.currentBook.volumeOrIssue = ''
+      state.currentBook.language = ''
+      state.currentBook.publicationDate = ''
+      state.currentBook.author = ''
+      state.currentBook.description = ''
+      state.currentBook.active = true
+
+      if (filePreviewRef.value) {
+        filePreviewRef.value.reset()
+      }
+
+      if (countryAutoComplete.value) {
+        countryAutoComplete.value.reset()
+      }
+
+      if (cityAutoComplete.value) {
+        cityAutoComplete.value.reset()
+      }
+
+      // TODO remove
+      addBookFormShouldReset = true
+
+      state.addBookDialogVisible = true
+    }
     // обработчик запуска редактирования выбранной книги
     function startBookEdit (bookId) {
-      console.log(startBookEdit, bookId)
+      state.addBookDialogVisible = true
+      state.selectedBookId = bookId
+      // отсеиваем из вычисляемого списка моделей собственных книг
+      // одну, которая которая соответствует идентификатору книги,
+      // выбранной для редактирования
+      const editedBook = books.value.find(book => book.id === bookId)
+      state.currentBook.title = editedBook.title
+      state.currentBook.type = editedBook.type
+      state.currentBook.genre = editedBook.genre
+      state.currentBook.publisher = editedBook.publisher
+      state.currentBook.volumeOrIssue = editedBook.volumeOrIssue
+      state.currentBook.language = editedBook.language
+      state.currentBook.publicationDate = editedBook.publicationDate
+      state.currentBook.author = editedBook.author
+      state.currentBook.description = editedBook.description
+      state.currentBook.active = editedBook.active
+      // инициализация локальных переменных компонента,
+      // значения из которых будут установлены в свойства состояния
+      // после отображения диалога добавления/редактирования книги
+      editedBookCountryName = editedBook.country
+      editedBookCityName = editedBook.city
+      editedBookImage = editedBook.image
+      // отображение диалога добавления книги (привключенном режиме редактирования)
+      // state.addBookDialogVisible = true
     }
     // обработчик запуска диалога удаления выбранной книги
     function startBookDelete (bookId) {
@@ -539,6 +671,17 @@ export default {
     // обработчик запуска панели шаринга в соцсети информации о выбранной книге
     function startBookShare (bookId) {
       console.log(startBookShare, bookId)
+    }
+    // 
+    function resetAddBookDialog () {
+      // Object.assign(state, initialState)
+      /* if (bookForm.value) {
+        bookForm.value.resetFields()
+      } */
+      if (bookForm.value) {
+        Object.assign(state.currentBook, initialState.currentBook)
+        console.log('initialState', state.currentBook)
+      }
     }
     // обработчик прокрутки страницы до низа
     const handleScroll = () => {
@@ -571,11 +714,12 @@ export default {
       cityItemSelected, cityInputChange,
       yearInputChange,
       onNewBookImagePreview,
-      addBookDialogClosedHandler, addBookDialogOk,
+      addBookDialogOpenedHandler, addBookDialogClosedHandler, addBookDialogOk, addBookDialogCancel,
+      resetAddBookDialog,
       onBookClicked, bookDitailsDialogClosedHandler,
-      startBookEdit, startBookDelete, startBookShare,
+      startBookAdd, startBookEdit, startBookDelete, startBookShare,
       onSearchInputChange, applyFilter, // methods
-      bookForm // refs
+      bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef // refs
     }
   }
 }

@@ -14,8 +14,7 @@ export default {
     options: Array,
     optionsKey: String,
     placeholder: String,
-    clearHandler: Boolean,
-    selectItemSetter: Function
+    clearHandler: Boolean
   },
   setup(props, ctx) {
     // локальная переменная для временного хранения текста,
@@ -82,19 +81,16 @@ export default {
       // устанавливаем в состояние набранный текст
       state.selectedItem = { userInput: state.userInput, item: null }
     }
-    // вызов метода установки анонимного метода приема текста извне
-    // для родительского компонента;
-    // при помощи установленного метода родительский компонент
-    // сможет в любой момент принудительно установить текст
-    // в поле ввода данного компонента
+    // метод приема текста извне
+    // от родительского компонента;
     // путем запуска цепной реакции получения списка вариантов
-    // и выбора заданного варианта 
-    props.selectItemSetter((newText) => {
+    // и выбора заданного варианта принудительно устанавливается выбранный элемент
+    function selectByText (newText) {
       // сохранение текста, полученного извне,
       // в локальной переменной компонента
       setItemText = newText
       onChange (newText)
-    })
+    }
     function reset () {
       state.userInput = ""
       state.selectedItem = { }
@@ -102,7 +98,7 @@ export default {
     return {
       state,
       suggestions,
-      selected, onChange, reset
+      selected, onChange, selectByText, reset
     }
   }
 }

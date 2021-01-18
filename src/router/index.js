@@ -4,7 +4,7 @@ import Search from '../views/Search.vue'
 import MyBooks from '../views/MyBooks.vue'
 import Contacts from '../views/Contacts.vue'
 import GoogleAuth from '../views/GoogleAuth.vue'
-// import store from '../store'
+import store from '../store'
 
 const routes = [
   {
@@ -44,7 +44,7 @@ const router = createRouter({
 })
 
 // слежение за изменением текущего маршрута на клиенте
-/* router.beforeEach((to, from, next) => {
+router.beforeEach((to, from, next) => {
   // при попытке перехода на раздел to получаем из модели соответствующего маршрута
   // значение метки:
   // требует ли аутентификации переход на данный раздел
@@ -68,6 +68,6 @@ const router = createRouter({
     // иначе - пропускаем пользователя на желаемый раздел
     next()
   }
-}) */
+})
 
 export default router

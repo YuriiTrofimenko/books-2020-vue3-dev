@@ -36,11 +36,9 @@ el-dialog(
           :optionsKey="state.countryOptionsKey"
           @newText="countryInputChange"
           @itemSelected="countryItemSelected"
-          :placeholder="'выберите страну'"
+          placeholder="выберите страну"
           :clearHandler="state.clearCountriesHandler"
           ref="countryAutoComplete"
-          :selectItemSetter="selectCountryAction => state.selectCountryAction = selectCountryAction"
-          @setup="selectCountryAction => state.selectCountryAction = selectCountryAction"
         )
       el-form-item(v-if="state.currentBook.country.name"  label="Ваш город"  prop="city")
         auto-complete(
@@ -48,11 +46,9 @@ el-dialog(
           :optionsKey="state.cityOptionsKey"
           @newText="cityInputChange"
           @itemSelected="cityItemSelected"
-          :placeholder="'выберите город'"
+          placeholder="выберите город"
           :clearHandler="state.clearCitiesHandler"
           ref="cityAutoComplete"
-          :selectItemSetter="selectCityAction => state.selectCityAction = selectCityAction"
-          @setup="selectCityAction => state.selectCityAction = selectCityAction"
         )
       el-form-item(label="Изображение")
         file-preview(
@@ -74,7 +70,7 @@ el-dialog(
           el-form-item(label="Год издания" prop="publicationDate")
             el-input(placeholder='укажите год издания' v-model='state.currentBook.publicationDate' @input="yearInputChange")
           el-form-item(label="Издатель")
-            el-input(placeholder='укажите издателя' v-model='state.currentBook.bulisher')
+            el-input(placeholder='укажите издателя' v-model='state.currentBook.publisher')
           el-form-item(label="Жанр")
             el-input(placeholder='укажите жанр' v-model='state.currentBook.genre')
   template(#footer)
@@ -144,10 +140,12 @@ export default {
     let editedBookCountryName = ''
     let editedBookCityName = ''
     let editedBookImage = ''
-    let addBookFormShouldReset = false
     const app = getCurrentInstance()
     const notify = app.appContext.config.globalProperties.$notify
     // ссылка на форму добавления / редактирования описания книги
+    // внимание! имя ссылки не должно быть равным имени компонента,
+    // на экземпляр компонента эта ссылка будет ссылаться,
+    // даже если имя компонента и имя ссылки записаны разными нотациями
     const bookForm = ref(null)
     const countryAutoComplete = ref(null)
     const cityAutoComplete = ref(null)
@@ -289,10 +287,15 @@ export default {
         name: ''
       }
       clearCities()
-      // загрузка списка городов выбранной страны
-      console.log('editedBookCityName', editedBookCityName)
+      // если запланирована принудительная установка извне названия города
+      // в поле ввода с автодопонением "город"
+      // перед редактированием описания книги
       if(editedBookCityName) {
-        state.selectCityAction(editedBookCityName)
+        // state.selectCityAction(editedBookCityName)
+        // из ссылочной оболочки получаем из свойства value ссылку на объект,
+        // который вернул компонент autoComplete города;
+        // вызываем метод это компонента - установка города извне
+        cityAutoComplete.value.selectByText(editedBookCityName)
         editedBookCityName = ''
       }
     }
@@ -357,14 +360,18 @@ export default {
     function addBookDialogClosedHandler () {
       console.log(state.currentBook)
     }
+    // обработчик события "модальное окно (диалог) добавления / редактирования книги" открылся
+    // внимание!
+    // при первом открытии окна сразу после срабатывания обработчика
+    // дочерние компоненты окна скорее всего еще не созданы и не примонтированы к родителю
     function addBookDialogOpenedHandler () {
+      // если методом начала редактирования книги "запланирована" инициализация
+      // поля автодополнения "страна" - в локальной переменной текущего компонента
+      // установлено название страны
       if(editedBookCountryName){
         setTimeout(() => {
-          if(addBookFormShouldReset) {
-            // resetAddBookDialog()
-            addBookFormShouldReset = false
-          }
-          state.selectCountryAction(editedBookCountryName)
+          // state.selectCountryAction(editedBookCountryName)
+          countryAutoComplete.value.selectByText(editedBookCountryName)
           editedBookCountryName = ''
           if (editedBookImage) {
             state.selectImageAction(editedBookImage)
@@ -563,7 +570,7 @@ export default {
     }
     // 
     function addBookDialogCancel () {
-      // resetAddBookDialog()
+      resetAddBookDialog()
       state.addBookDialogVisible = false
     }
     // метод для вызова каждый раз, когда нужно получить
@@ -602,44 +609,15 @@ export default {
       // зануление модели выбранной книги в стостояние
       state.selectedBook = null
     }
-    // 
+    // обработчик клика кнопки открытия окна добавления / редактирования книги
     function startBookAdd () {
-
-      if (bookForm.value) {
-        bookForm.value.resetFields()
-      }
-
-      state.currentBook.title = ''
-      state.currentBook.type = ''
-      state.currentBook.genre = ''
-      state.currentBook.publisher = ''
-      state.currentBook.volumeOrIssue = ''
-      state.currentBook.language = ''
-      state.currentBook.publicationDate = ''
-      state.currentBook.author = ''
-      state.currentBook.description = ''
-      state.currentBook.active = true
-
-      if (filePreviewRef.value) {
-        filePreviewRef.value.reset()
-      }
-
-      if (countryAutoComplete.value) {
-        countryAutoComplete.value.reset()
-      }
-
-      if (cityAutoComplete.value) {
-        cityAutoComplete.value.reset()
-      }
-
-      // TODO remove
-      addBookFormShouldReset = true
-
+      resetAddBookDialog()
       state.addBookDialogVisible = true
     }
     // обработчик запуска редактирования выбранной книги
     function startBookEdit (bookId) {
       state.addBookDialogVisible = true
+      resetAddBookDialog()
       state.selectedBookId = bookId
       // отсеиваем из вычисляемого списка моделей собственных книг
       // одну, которая которая соответствует идентификатору книги,
@@ -674,13 +652,47 @@ export default {
     }
     // 
     function resetAddBookDialog () {
-      // Object.assign(state, initialState)
-      /* if (bookForm.value) {
-        bookForm.value.resetFields()
-      } */
+      // если форма уже существует -
+      // сбрасываем ее валидатор
       if (bookForm.value) {
-        Object.assign(state.currentBook, initialState.currentBook)
-        console.log('initialState', state.currentBook)
+        bookForm.value.resetFields()
+      }
+      // устанавливаем исходные пустые значения
+      // всем свойствам модели текущей книги в состоянии компонента,
+      // у которых эти свойства подключются директивой двунаправленной привязки
+      state.currentBook.title = ''
+      state.currentBook.type = ''
+      state.currentBook.genre = ''
+      state.currentBook.publisher = ''
+      state.currentBook.volumeOrIssue = ''
+      state.currentBook.language = ''
+      state.currentBook.publicationDate = ''
+      state.currentBook.author = ''
+      state.currentBook.description = ''
+      state.currentBook.active = true
+
+      state.currentBook.country = {
+        id: null,
+        name: ''
+      }
+      state.currentBook.city = {
+        id: null,
+        countryId: null,
+        name: ''
+      }
+
+      state.currentBook.image = ''
+
+      if (filePreviewRef.value) {
+        filePreviewRef.value.reset()
+      }
+
+      if (countryAutoComplete.value) {
+        countryAutoComplete.value.reset()
+      }
+
+      if (cityAutoComplete.value) {
+        cityAutoComplete.value.reset()
       }
     }
     // обработчик прокрутки страницы до низа

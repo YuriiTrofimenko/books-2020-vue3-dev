@@ -2,7 +2,8 @@ export default {
     state: {
         loading: false,
         error: null,
-        baseRestApiUrl: 'http://127.0.0.1:8082/api.php'
+        baseRestApiUrl: 'http://127.0.0.1:8082/api.php',
+        targetAddress: null
         // baseRestApiUrl: 'https://books-as-a-gift.000webhostapp.com/api.php'
     },
     mutations: {
@@ -14,6 +15,9 @@ export default {
         },
         clearError (state) {
             state.error = null
+        },
+        setTargetAddress (state, payload) {
+            state.targetAddress = payload
         }
     },
     actions: {
@@ -28,6 +32,10 @@ export default {
         // Clear error
         clearError ({commit}) {
             commit('clearError')
+        },
+        // 
+        setTargetAddress ({commit}, payload) {
+            commit('setTargetAddress', payload)
         }
     },
     getters: {
@@ -41,6 +49,9 @@ export default {
         },
         baseRestApiUrl (state) {
             return state.baseRestApiUrl
+        },
+        targetAddress (state) {
+            return state.targetAddress
         }
     }
 }

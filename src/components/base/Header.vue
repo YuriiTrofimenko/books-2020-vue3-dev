@@ -10,6 +10,15 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
         router-link( :to="`${link.url}`" ) {{ link.title }}
     el-menu-item
       span.lang-icon(
+        v-for="(lang, index) in languages"
+        :key="index"
+        :index="index.toString()"
+        @click="setLocale(lang.localeKey)"
+        :class="{ 'active-lang': i18n.getLocale() === lang.localeKey }"
+      )
+        flag(:iso="lang.flagKey")
+    //-
+      span.lang-icon(
         @click="setLocale('en')"
         :class="{ 'active-lang': i18n.getLocale() === 'en' }"
       )
@@ -30,13 +39,13 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
                 el-dropdown-menu
                     el-dropdown-item(disabled='') {{userData.name}}
                     el-dropdown-item(disabled='') {{userData.email}}
-                    el-dropdown-item(divided='' @click='signOut') SignOut
+                    el-dropdown-item(divided='' @click='signOut') {{t('base.header.signOutButton')}}
     // ссылка на раздел аутентификации, если пользователь не аутентифицирован
     el-menu-item(v-else)
         router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
 </template>
 <script>
-import { reactive, computed, getCurrentInstance } from 'vue'
+import { reactive, computed, getCurrentInstance, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from "vue3-i18n"
 import store from '../../store'
@@ -46,7 +55,7 @@ export default {
         const app = getCurrentInstance()
         const t = app.appContext.config.globalProperties.$t
         const i18n = useI18n()
-        console.log('i18n = ', i18n)
+        // console.log('i18n = ', i18n)
         const router = useRouter()
         const state = reactive({
             menuShow: false,
@@ -55,6 +64,7 @@ export default {
         const checkUser = computed(() => store.getters.checkUser)
         const userData = computed(() => store.getters.user)
         const isLoading = computed(() => store.getters.loading)
+        const languages = computed(() => store.getters.languages)
         /* const linkMenu = computed(() =>
           (checkUser.value)
             ? [
@@ -81,6 +91,9 @@ export default {
                 { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
               ]
         )
+        onMounted(() => {
+          store.dispatch('loadLanguages')
+        })
         function signOut () {
           // Выход из учетной записи
           store.dispatch('logoutUser')
@@ -93,7 +106,7 @@ export default {
         }
         return {
             state, // состояние
-            checkUser, userData, isLoading, linkMenu, // вычисляемые свойства
+            checkUser, userData, isLoading, linkMenu, languages, // вычисляемые свойства
             signOut, t, setLocale, // методы
             i18n
         }

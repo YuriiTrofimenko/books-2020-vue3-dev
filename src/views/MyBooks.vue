@@ -7,7 +7,7 @@ el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
         .filter-form__collapse-header
           | Тип предложения
           i.header-icon.el-icon-place
-      el-select(v-model='state.filter.type' clearable placeholder="выбрать тип")
+      el-select(v-model='state.filter.typeId' clearable placeholder="выбрать тип")
         el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
     //- el-collapse-item(name='2')
     el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
@@ -128,7 +128,8 @@ el-row(type="flex" justify="center" align="center")
           el-button(circle icon='el-icon-share' @click='startBookShare(book.id)')
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount, */ /* watch, */ onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import FilePreview from '../components/common/FilePreview'
 import BookDetailsCard from './myBooks/BookDetailsCard'
 import store from '../store'
@@ -142,6 +143,18 @@ export default {
     let editedBookImage = ''
     const app = getCurrentInstance()
     const notify = app.appContext.config.globalProperties.$notify
+    const router = useRouter()
+    const route = useRoute()
+    /* router.beforeEach((to, from, next) => {
+      console.log(to, from, next)
+      if(from.query.type && from.query.type != to.query.type) {
+        if(!state.filter.typeId){
+          state.filter.typeId = to.query.type
+        }
+        applyFilter()
+      }
+      next()
+    }) */
     // ссылка на форму добавления / редактирования описания книги
     // внимание! имя ссылки не должно быть равным имени компонента,
     // на экземпляр компонента эта ссылка будет ссылаться,
@@ -219,7 +232,7 @@ export default {
       // Модель фильтрации по строке поиска и полям боковой панели
       filter: {
         search: '',
-        type: null
+        typeId: null
       },
       filterBarActive: false,
       activeFilterBarItems: ['1'],
@@ -244,13 +257,15 @@ export default {
         'value': item.id
        }}
     ))
-    /* watch(books, (newValue) => {
-      if (newValue.length > 0){
+    const bookFilterType = computed(() => state.filter.typeId)
+    watch(bookFilterType, () => {
+      setUrl()
+      /* if (newValue.length > 0){
         state.isSuggestionsShown = true
       } else {
         state.isSuggestionsShown = false
-      }
-    }) */
+      } */
+    })
     /* watch(state.currentBook.title, (newValue) => {
       console.log('year', newValue)
       if (newValue && newValue.length > 0){
@@ -264,7 +279,14 @@ export default {
     onMounted(() => {
       store.dispatch('loadTypes')
       // первый вызов метода получения порции моделей книг
-      loadMoreBooks()
+      // loadMoreBooks()
+      console.log('route', route)
+      if(route.query.type){
+        state.filter.typeId = route.query.type
+        applyFilter()
+      } else {
+        loadMoreBooks()
+      }
       // установка обработчика события прокрутки
 			window.addEventListener("scroll", handleScroll)
     })
@@ -275,7 +297,10 @@ export default {
       window.removeEventListener("scroll", handleScroll)
       // очистка списка моделей книг
       store.dispatch('clearBooks')
-		})
+    })
+    function setUrl () {
+      router.push({ path: 'my-books', query: { type: state.filter.typeId } })
+    }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
       state.currentBook.country = selectedCountry
@@ -713,7 +738,7 @@ export default {
     }
     function resetInfiniteBookLoading () {
       // очистка списка моделей книг
-      store.dispatch('clearBooks')
+      store.dispatch('clearMyBooks')
       // вызов метода получения порции моделей книг
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()

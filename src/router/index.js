@@ -57,6 +57,8 @@ router.beforeEach((to, from, next) => {
     // если за две секунды аутентификация не будет выполнена автоматически
     setTimeout(() => {
       if (!auth) {
+        console.log('set targetAddress', to)
+        store.dispatch('setTargetAddress', to)
         // перенаправляем пользователя на раздел входа в аккаунт
         next({name: 'GoogleAuth'})
       } else {

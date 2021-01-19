@@ -5,6 +5,7 @@ import country from './country'
 import city from './city'
 import book from './book'
 import type from './type'
+import language from './language'
 
 export default createStore({
   state: {
@@ -14,6 +15,6 @@ export default createStore({
   actions: {
   },
   modules: {
-    user, common, country, city, book, type
+    user, common, country, city, book, type, language
   }
 })

@@ -19,13 +19,20 @@ firebase.initializeApp(firebaseConfig)
 // начало сбора статистики использования фронтенда клиентами
 firebase.analytics()
 // установка обработчика события изменения состояния аутентификации
-firebase.auth().onAuthStateChanged((user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
     // Если в результате попытки аутентификации появились данные о пользователе
     if (user) {
       // Запоминаем его модель в переменную локального хранилища
-      store.dispatch('loggedUser', user)
-      // Переходим на раздел сайта Home
-      router.push('/')
+      await store.dispatch('loggedUser', user)
+      // Переходим на раздел сайта
+      const targetAddress = store.getters.targetAddress
+      console.log('targetAddress main', targetAddress)
+      if(targetAddress){
+        router.push({ path: targetAddress.path, query: targetAddress.query })
+        await store.dispatch('setTargetAddress', null)
+      } else {
+        router.push('/')
+      }
     } else {
       // Если данные о пользователе исчезли, например, после выхода
       // из учетной записи -

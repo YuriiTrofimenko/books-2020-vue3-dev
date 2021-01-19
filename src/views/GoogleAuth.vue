@@ -3,6 +3,7 @@
 </template>
 <script>
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import firebase from 'firebase'
 // import * as firebaseui from 'firebaseui'
 import store from '../store'
@@ -10,8 +11,9 @@ import store from '../store'
 export default {
   name: "GoogleAuth",
   setup () {
+    const router = useRouter()
     const checkUser = computed(() => store.getters.checkUser)
-    onMounted(() => {
+    onMounted(async () => {
       // Инициализация и старт представления аутентификации Google
       /* const uiConfig = {
         signInSuccessUrl: '/',
@@ -34,6 +36,15 @@ export default {
           // await firebase.auth().signInWithRedirect(provider)
         } catch (ex) {
           console.log(ex)
+        }
+      } else {
+        const targetAddress = store.getters.targetAddress
+        console.log('targetAddress', targetAddress)
+        if(targetAddress){
+          router.push({ path: targetAddress.path, query: targetAddress.query })
+          await store.dispatch('setTargetAddress', null)
+        } else {
+          router.push('/')
         }
       }
     })

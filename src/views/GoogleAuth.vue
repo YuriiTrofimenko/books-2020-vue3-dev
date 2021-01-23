@@ -36,6 +36,7 @@ export default {
           // await firebase.auth().signInWithRedirect(provider)
         } catch (ex) {
           console.log(ex)
+          alert('Auth Error. Allow Pop-ups in Your Browser')
         }
       } else {
         const targetAddress = store.getters.targetAddress

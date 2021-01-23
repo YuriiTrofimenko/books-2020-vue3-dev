@@ -19,6 +19,7 @@
     "vue": "^3.0.0",
     "vue-flag-icon": "^1.0.6",
     "vue-router": "^4.0.0-0",
+    "vue-tour-component": "^7.0.0",
     "vue3-i18n": "^1.0.1",
     "vuex": "^4.0.0-0"
   },

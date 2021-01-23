@@ -13,7 +13,13 @@ import store from './store'
 import {i18n} from './utils/i18n'
 import FlagIcon from 'vue-flag-icon'
 
+import { Tour } from 'vue-tour-component'
+
+// require('../node_modules/tour-component/dist/tour.min.css')
+require('./css/tour-component-custom.css')
+
 const app = createApp(App).use(store).use(router).use(ElementPlus).use(i18n).use(FlagIcon)
+app.component('tour', Tour)
 // активация клиентской логики firebase
 firebase.initializeApp(firebaseConfig)
 // начало сбора статистики использования фронтенда клиентами

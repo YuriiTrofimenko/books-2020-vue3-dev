@@ -90,16 +90,17 @@ el-dialog(
   )
 //- заголовок раздела с кнопкой открытия диалога добавления новой книги
 //- и с кнопкой открытия панели фильтра
+tour(:data="state.tourData" v-if="tourIsVisible" @update="tourUpdate($event)")
 el-row(type="flex" justify="center" align="center")
   el-col(:span="12")
     h1 Мои книги
   el-col(:span="6" :offset="6" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
-    el-tooltip(content="Добавить книгу" placement="bottom" effect="light")
-      el-button(@click="startBookAdd")
-        i.el-icon-plus
-    el-tooltip(content="Фильтр" placement="bottom" effect="light")
-      el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
-        span Фильтр
+    //- el-tooltip(content="Добавить книгу" placement="bottom" effect="light" id="step_1")
+    el-button(@click="startBookAdd" id="step_1"  ref='addBookButtonRef')
+      i.el-icon-plus
+    //- el-tooltip(content="Фильтр" placement="bottom" effect="light" id="step_2")
+    el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive' id="step_2" ref='filterButtonRef')
+      span Фильтр
 //- область основного содержимого - карточки описаний собственных книг
 .infinite-wrapper
   el-row(type='flex' justify='center' align='middle' :gutter="15")
@@ -142,7 +143,9 @@ export default {
     let editedBookCityName = ''
     let editedBookImage = ''
     const app = getCurrentInstance()
+    // app.component('tour', Tour)
     const notify = app.appContext.config.globalProperties.$notify
+    console.log(app.appContext.config.globalProperties)
     const router = useRouter()
     const route = useRoute()
     /* router.beforeEach((to, from, next) => {
@@ -163,6 +166,8 @@ export default {
     const countryAutoComplete = ref(null)
     const cityAutoComplete = ref(null)
     const filePreviewRef = ref(null)
+    const addBookButtonRef = ref(null)
+    const filterButtonRef = ref(null)
     const initialState = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
       addBookDialogVisible: false,
@@ -238,7 +243,14 @@ export default {
       activeFilterBarItems: ['1'],
       selectCountryAction: null,
       selectCityAction: null,
-      selectImageAction: null
+      selectImageAction: null,
+      tourData: {
+        steps: [
+          
+        ],
+        index: 0,
+        localStorageKey: 'tour'
+      }
     })
     const state = reactive({ ...initialState })
     // Массивы данных автодополнения для полей ввода страны и города
@@ -258,6 +270,7 @@ export default {
        }}
     ))
     const bookFilterType = computed(() => state.filter.typeId)
+    const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
     watch(bookFilterType, () => {
       setUrl()
       /* if (newValue.length > 0){
@@ -288,7 +301,32 @@ export default {
         loadMoreBooks()
       }
       // установка обработчика события прокрутки
-			window.addEventListener("scroll", handleScroll)
+      window.addEventListener("scroll", handleScroll)
+      const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
+      const addBookButtonPosition = addBookButtonRef.value.$el.getBoundingClientRect()
+      console.log('filterRef', filterButtonPosition.top)
+      console.log('filterRef', filterButtonPosition.left)
+      /* state.tourData.steps.forEach(step => {
+        console.log('step', step)
+        // step.top = filterButtonPosition.top
+        // step.left = filterButtonPosition.left
+      }) */
+      state.tourData.steps = [{
+            targetElementId: 'step_1',
+            content: `Добавьте описание книги`,
+            next: 'далее',
+            direction: 'bottom',
+            top: addBookButtonPosition.top + 60 + 'px',
+            left: addBookButtonPosition.left + 'px'
+          },
+          {
+            targetElementId: 'step_2',
+            content: 'Примените фильтр списка книг',
+            next: 'закрыть',
+            direction: 'bottom',
+            top: filterButtonPosition.top + 60 + 'px',
+            left: filterButtonPosition.left + 'px'
+          }]
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
@@ -743,10 +781,14 @@ export default {
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()
     }
+    function tourUpdate(index) {
+      state.tourData.index = index
+    }
     return {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
-      currentBookType, books, typeOptions, // computed
+      currentBookType, books, typeOptions,
+      tourIsVisible, // computed
       countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       yearInputChange,
@@ -755,8 +797,10 @@ export default {
       resetAddBookDialog,
       onBookClicked, bookDitailsDialogClosedHandler,
       startBookAdd, startBookEdit, startBookDelete, startBookShare,
-      onSearchInputChange, applyFilter, // methods
-      bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef // refs
+      onSearchInputChange, applyFilter,
+      tourUpdate, // methods
+      bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef,
+      filterButtonRef, addBookButtonRef // refs
     }
   }
 }
@@ -783,4 +827,16 @@ export default {
   .card-image
     width 150px
     height 225px
+/* .tour-tip
+  background #fff
+  box-shadow 0 2px 12px 0 rgba(0,0,0,.1)
+  & > *
+    border 1.5em solid red
+    background red
+    border-color red red red red
+    box-shadow -5px 5px 5px 0 rgba(0,0,0,.25)
+    top -50px !important
+  .button
+    background-color #fff !important
+    box-shadow 0 2px 12px 0 rgba(0,0,0,.1) */
 </style>

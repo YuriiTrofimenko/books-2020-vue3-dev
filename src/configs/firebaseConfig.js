@@ -5,5 +5,6 @@ export const firebaseConfig = {
   storageBucket: "public-home-library-dev.appspot.com",
   messagingSenderId: "884680274898",
   appId: "1:884680274898:web:3a652dfb76dc977cdb4e0b",
-  measurementId: "G-EL894LEF6C"
+  measurementId: "G-EL894LEF6C",
+  databaseURL:"https://public-home-library-dev-default-rtdb.europe-west1.firebasedatabase.app"
 }

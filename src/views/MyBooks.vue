@@ -90,7 +90,11 @@ el-dialog(
   )
 //- заголовок раздела с кнопкой открытия диалога добавления новой книги
 //- и с кнопкой открытия панели фильтра
-tour(:data="state.tourData" v-if="tourIsVisible" @update="tourUpdate($event)")
+tour(
+  :data="state.tourData"
+  v-if="tourIsVisible && !isTourFinished"
+  @update="tourUpdate($event)"
+)
 el-row(type="flex" justify="center" align="center")
   el-col(:span="12")
     h1 Мои книги
@@ -142,6 +146,7 @@ export default {
     let editedBookCountryName = ''
     let editedBookCityName = ''
     let editedBookImage = ''
+    const myBooksTourName = 'my-books'
     const app = getCurrentInstance()
     // app.component('tour', Tour)
     const notify = app.appContext.config.globalProperties.$notify
@@ -271,25 +276,13 @@ export default {
     ))
     const bookFilterType = computed(() => state.filter.typeId)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
+    const isTourFinished = computed(() => store.getters.tours.find((tour) => tour.name === myBooksTourName))
     watch(bookFilterType, () => {
       setUrl()
-      /* if (newValue.length > 0){
-        state.isSuggestionsShown = true
-      } else {
-        state.isSuggestionsShown = false
-      } */
     })
-    /* watch(state.currentBook.title, (newValue) => {
-      console.log('year', newValue)
-      if (newValue && newValue.length > 0){
-        state.addBookFormRules['year'] = {type: 'string', required: true, pattern: '^-?\\d{4}$', message: 'Формат года издания ГГГГ или -ГГГГ (до н.э.)'}
-      } else {
-        delete state.addBookFormRules.year
-      }
-    }) */
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
-    onMounted(() => {
+    onMounted(async () => {
       store.dispatch('loadTypes')
       // первый вызов метода получения порции моделей книг
       // loadMoreBooks()
@@ -304,14 +297,9 @@ export default {
       window.addEventListener("scroll", handleScroll)
       const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
       const addBookButtonPosition = addBookButtonRef.value.$el.getBoundingClientRect()
-      console.log('filterRef', filterButtonPosition.top)
-      console.log('filterRef', filterButtonPosition.left)
-      /* state.tourData.steps.forEach(step => {
-        console.log('step', step)
-        // step.top = filterButtonPosition.top
-        // step.left = filterButtonPosition.left
-      }) */
-      state.tourData.steps = [{
+      await store.dispatch('loadTours')
+      if(!isTourFinished.value) {
+        state.tourData.steps = [{
             targetElementId: 'step_1',
             content: `Добавьте описание книги`,
             next: 'далее',
@@ -327,6 +315,9 @@ export default {
             top: filterButtonPosition.top + 60 + 'px',
             left: filterButtonPosition.left + 'px'
           }]
+      } else {
+        state.tourData.steps = []
+      }
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
@@ -782,13 +773,18 @@ export default {
       loadMoreBooks()
     }
     function tourUpdate(index) {
+      console.log('index', index)
+      console.log('tours', store.getters.tours)
+      if(index === -1) {
+        store.dispatch('doneTour', { name: myBooksTourName })
+      }
       state.tourData.index = index
     }
     return {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
       currentBookType, books, typeOptions,
-      tourIsVisible, // computed
+      tourIsVisible, isTourFinished, // computed
       countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       yearInputChange,

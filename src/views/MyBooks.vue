@@ -92,7 +92,7 @@ el-dialog(
 //- и с кнопкой открытия панели фильтра
 tour(
   :data="state.tourData"
-  v-if="tourIsVisible && !isTourFinished"
+  v-if="tourIsVisible"
   @update="tourUpdate($event)"
 )
 el-row(type="flex" justify="center" align="center")
@@ -150,19 +150,8 @@ export default {
     const app = getCurrentInstance()
     // app.component('tour', Tour)
     const notify = app.appContext.config.globalProperties.$notify
-    console.log(app.appContext.config.globalProperties)
     const router = useRouter()
     const route = useRoute()
-    /* router.beforeEach((to, from, next) => {
-      console.log(to, from, next)
-      if(from.query.type && from.query.type != to.query.type) {
-        if(!state.filter.typeId){
-          state.filter.typeId = to.query.type
-        }
-        applyFilter()
-      }
-      next()
-    }) */
     // ссылка на форму добавления / редактирования описания книги
     // внимание! имя ссылки не должно быть равным имени компонента,
     // на экземпляр компонента эта ссылка будет ссылаться,
@@ -250,9 +239,7 @@ export default {
       selectCityAction: null,
       selectImageAction: null,
       tourData: {
-        steps: [
-          
-        ],
+        steps: [],
         index: 0,
         localStorageKey: myBooksTourName + '-tour'
       }
@@ -276,7 +263,7 @@ export default {
     ))
     const bookFilterType = computed(() => state.filter.typeId)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
-    const isTourFinished = computed(() => store.getters.tours.find((tour) => tour.name === myBooksTourName))
+    const currentTour = computed(() => store.getters.tours.find((tour) => tour && tour.name === myBooksTourName))
     watch(bookFilterType, () => {
       setUrl()
     })
@@ -298,25 +285,26 @@ export default {
       const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
       const addBookButtonPosition = addBookButtonRef.value.$el.getBoundingClientRect()
       await store.dispatch('loadTours')
-      if(!isTourFinished.value) {
-        state.tourData.steps = [{
-            targetElementId: 'step_1',
-            content: `Добавьте описание книги`,
-            next: 'далее',
-            direction: 'bottom',
-            top: addBookButtonPosition.top + 60 + 'px',
-            left: addBookButtonPosition.left + 'px'
-          },
-          {
-            targetElementId: 'step_2',
-            content: 'Примените фильтр списка книг',
-            next: 'закрыть',
-            direction: 'bottom',
-            top: filterButtonPosition.top + 60 + 'px',
-            left: filterButtonPosition.left + 'px'
-          }]
-      } else {
-        state.tourData.steps = []
+      // если есть модель тура, полученная с сервера
+      state.tourData.steps = [{
+        targetElementId: 'step_1',
+        content: 'Добавьте описание книги',
+        next: 'далее',
+        direction: 'bottom',
+        top: addBookButtonPosition.top + 60 + 'px',
+        left: addBookButtonPosition.left + 'px'
+      },
+      {
+        targetElementId: 'step_2',
+        content: 'Примените фильтр списка книг',
+        next: 'закрыть',
+        direction: 'bottom',
+        top: filterButtonPosition.top + 60 + 'px',
+        left: filterButtonPosition.left + 'px'
+      }]
+      console.log(currentTour.value)
+      if(currentTour.value && currentTour.value.index) {
+        state.tourData.index = currentTour.value.index
       }
     })
     // обработчик события жизненного цикла компонента:
@@ -778,26 +766,18 @@ export default {
     function tourUpdate(index) {
       if(index === 1) {
         store.dispatch('newTour', { name: myBooksTourName })
-      } else if(index > 1 && index !== -1) {
-        store.dispatch('updateTour', { index })
+      } else if(index > 1) {
+        store.dispatch('updateTour', { id: currentTour.value.id, changes: { index } })
       } else if(index === -1) {
-        store.dispatch('updateTour', { index, done: true })
+        store.dispatch('updateTour', { id: currentTour.value.id, changes: { index, done: true } })
       }
-      // если тур завершен
-      /* if(index === -1) {
-        // вызов действия локального хранилища:
-        // тур с именем myBooksTourName завершен
-        store.dispatch('newTour', { name: myBooksTourName })
-      } else {
-
-      } */
       state.tourData.index = index
     }
     return {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
       currentBookType, books, typeOptions,
-      tourIsVisible, isTourFinished, // computed
+      tourIsVisible, currentTour, // computed
       countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       yearInputChange,

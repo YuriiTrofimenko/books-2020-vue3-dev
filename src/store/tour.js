@@ -43,6 +43,7 @@ export default {
             toursArray.push(
               new Tour(
                 t.name,
+                t.index,
                 t.done,
                 key
               )
@@ -93,15 +94,13 @@ export default {
       commit('clearError')
       commit('setLoading', true)
       try {
-        const tour =
-          await firebase.database()
-            .ref(getters.user.id + '/tours')
-            .child(payload.id)
-            .update({
-              ...changes
-            })
+        await firebase.database()
+          .ref(getters.user.id + '/tours')
+          .child(id)
+          .update({
+            ...changes
+          })
         commit('updateTour', {id, ...changes})
-
         commit('setLoading', false)
       } catch (error) {
         commit('setLoading', false)

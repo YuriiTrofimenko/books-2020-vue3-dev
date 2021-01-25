@@ -254,7 +254,7 @@ export default {
           
         ],
         index: 0,
-        localStorageKey: 'tour'
+        localStorageKey: myBooksTourName + '-tour'
       }
     })
     const state = reactive({ ...initialState })
@@ -772,12 +772,25 @@ export default {
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()
     }
+    // вызывается каждый раз компонентом Тур,
+    // когда пользователь кликает кнопку показа следуещего шага подсказки
+    // или окончания тура
     function tourUpdate(index) {
-      console.log('index', index)
-      console.log('tours', store.getters.tours)
-      if(index === -1) {
-        store.dispatch('doneTour', { name: myBooksTourName })
+      if(index === 1) {
+        store.dispatch('newTour', { name: myBooksTourName })
+      } else if(index > 1 && index !== -1) {
+        store.dispatch('updateTour', { index })
+      } else if(index === -1) {
+        store.dispatch('updateTour', { index, done: true })
       }
+      // если тур завершен
+      /* if(index === -1) {
+        // вызов действия локального хранилища:
+        // тур с именем myBooksTourName завершен
+        store.dispatch('newTour', { name: myBooksTourName })
+      } else {
+
+      } */
       state.tourData.index = index
     }
     return {

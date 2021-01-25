@@ -48,11 +48,16 @@ div
       //- el-collapse-item(name='3')
       el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
   el-row#search-row(type='flex' justify='center' align='middle' )
-    el-col(:lg="22" :sm="12" :xs="24")
+    el-col(:lg="22" :sm="12" :xs="24" id="step_1" ref='searchInputRef')
       el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
-    el-col(:lg="2" :sm="2" :xs="24")
+    el-col(:lg="2" :sm="2" :xs="24" id="step_2" ref='filterButtonRef')
       el-button(icon='filter_list' @click='state.filterBarActive = !state.filterBarActive')
         span Фильтр
+  tour(
+    :data="state.tourData"
+    v-if="tourIsVisible"
+    @update="tourUpdate($event)"
+  )
   //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
   .infinite-wrapper
     el-row(type='flex' justify='center' align='middle')
@@ -73,13 +78,16 @@ div
               el-button(circle icon='el-icon-share')
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted } from 'vue'
+import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted, ref } from 'vue'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
   name: 'Search',
   components: { AutoComplete },
   setup () {
+    const searchTourName = 'search'
+    const searchInputRef = ref(null)
+    const filterButtonRef = ref(null)
     // Создаем ссылку, по которой можно работать с элементом-оберткой
     // области бесконечной догрузки (карточек книг)
     const state = reactive({
@@ -110,12 +118,18 @@ export default {
       //   {text: 'отдам', value: 1},
       //   {text: 'дам почитать', value: 2}
       // ],
-      activeFilterBarItems: ['1', '2']
+      activeFilterBarItems: ['1', '2'],
+      tourData: {
+        steps: [],
+        index: localStorage.getItem(searchTourName + '-tour') ? -1 : 0,
+        localStorageKey: searchTourName + '-tour'
+      }
     })
     // источник данных о книгах
     const books = computed(() => store.getters.books)
     const suggestedCountries = computed(() => store.getters.countries)
     const suggestedCities = computed(() => store.getters.cities)
+    const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
     // eslint-disable-next-line no-unused-vars
     const typeOptions = computed(() => store.getters.searchTypes.map((item, index, types) =>
        {return {
@@ -181,7 +195,25 @@ export default {
       // первый вызов метода получения порции моделей книг
       loadMoreBooks()
       // установка обработчика события прокрутки
-			window.addEventListener("scroll", handleScroll)
+      window.addEventListener("scroll", handleScroll)
+      const searchInputPosition = searchInputRef.value.$el.getBoundingClientRect()
+      const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
+      state.tourData.steps = [{
+            targetElementId: 'step_1',
+            content: `Найдите книгу по названию/автору`,
+            next: 'далее',
+            direction: 'bottom',
+            top: searchInputPosition.top + 60 + 'px',
+            left: searchInputPosition.left + 'px'
+          },
+          {
+            targetElementId: 'step_2',
+            content: 'Дополнительные фильтры списка книг',
+            next: 'закрыть',
+            direction: 'bottom',
+            top: filterButtonPosition.top + 60 + 'px',
+            left: filterButtonPosition.left + 'px'
+          }]
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
@@ -285,12 +317,16 @@ export default {
       store.dispatch('requestBook', {bookId: state.selectedBookId})
       state.selectedBookId = null
     }
+    function tourUpdate(index) {
+      state.tourData.index = index
+    }
     return {
       state, // state
-      books, suggestedCountries, suggestedCities, typeOptions, // computed
+      books, suggestedCountries, suggestedCities, typeOptions, tourIsVisible, // computed
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
-      applyFilter, showBookDetails, acceptAlert // methods
+      applyFilter, showBookDetails, acceptAlert, tourUpdate, // methods
+      searchInputRef, filterButtonRef // refs
     }
   }
 }

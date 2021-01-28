@@ -263,6 +263,7 @@ export default {
     ))
     const bookFilterType = computed(() => state.filter.typeId)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
+    // модель тура, если она была получена из удаленного хранилища
     const currentTour = computed(() => store.getters.tours.find((tour) => tour && tour.name === myBooksTourName))
     watch(bookFilterType, () => {
       setUrl()
@@ -302,8 +303,13 @@ export default {
         top: filterButtonPosition.top + 60 + 'px',
         left: filterButtonPosition.left + 'px'
       }]
-      console.log(currentTour.value)
-      if(currentTour.value && currentTour.value.index) {
+      // если есть информация из удаленного хранилища,
+      // что пользователь ранее начал просматривать тур,
+      // и если в модели тура есть индекс
+      if (currentTour.value && currentTour.value.index) {
+        // в свойство состояния "Данные тура" устанавливаем
+        // значение индекса шага, на ктором пользователь
+        // ранее остановился
         state.tourData.index = currentTour.value.index
       }
     })
@@ -764,6 +770,7 @@ export default {
     // когда пользователь кликает кнопку показа следуещего шага подсказки
     // или окончания тура
     function tourUpdate(index) {
+      console.log('updateTour', index, currentTour.value)
       if(index === 1) {
         store.dispatch('newTour', { name: myBooksTourName })
       } else if(index > 1) {

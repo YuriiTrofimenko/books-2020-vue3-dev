@@ -10,6 +10,7 @@ export default {
     },
     newTour (state, payload) {
       state.tours.push(payload.tour)
+      console.log('tours', state.tours)
     },
     updateTour (state, payload) {
       const oldTour = state.tours.find(tour => tour.id === payload.id)
@@ -20,6 +21,7 @@ export default {
         done: (payload.done !== undefined) ? payload.done : oldTour.done
       }
       Object.assign(oldTour, newTour)
+      console.log('tours', state.tours)
     },
   },
   actions: {
@@ -78,10 +80,10 @@ export default {
             .push({...newTour})
         // вызов исменения состояния локального хранилища:
         // добавить описание тура
-        commit('newTour', {
+        commit('newTour', {'tour': {
           ...newTour,
           id: tour.key
-        })
+        }})
 
         commit('setLoading', false)
       } catch (error) {

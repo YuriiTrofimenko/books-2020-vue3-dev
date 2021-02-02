@@ -278,6 +278,8 @@ export default {
       if(route.query.type){
         state.filter.typeId = route.query.type
         applyFilter()
+      } else if (route.params.id) {
+        showBookDetails(route.params.id)
       } else {
         loadMoreBooks()
       }
@@ -647,8 +649,22 @@ export default {
     }
     // обработчик клика по изображению или заголовку на карточке книги в сетке
     function onBookClicked (book) {
-      // установка модели выбранной книги в стостояние
+      // установка модели выбранной книги в состояние компонента
       state.selectedBook = book
+      router.push({ path: 'my-books/' + book.id })
+      showBookDetails()
+    }
+    // отображение детализации книги,
+    // выбранной пользователем из списка,
+    // или по ИД, указанному в адресной строке
+    async function showBookDetails (id) {
+      // если на фронтенде информации о книге нет -
+      // запрашиваем ее с сервера по ИД
+      if (!state.selectedBook) {
+        state.selectedBook =
+          await store.dispatch('getBookById', { id })
+        console.log("state.selectedBook", state.selectedBook)
+      }
       // отображение окна детализации книги
       state.bookDetailsDialogVisible = true
     }

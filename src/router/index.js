@@ -18,6 +18,15 @@ const routes = [
     component: Search
   },
   {
+    path: '/my-books/:id',
+    name: 'MyBooksBook',
+    component: MyBooks,
+    // метка: переход на данный раздел требует аутентификации
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
     path: '/my-books',
     name: 'MyBooks',
     component: MyBooks,

@@ -274,7 +274,7 @@ export default {
       store.dispatch('loadTypes')
       // первый вызов метода получения порции моделей книг
       // loadMoreBooks()
-      console.log('route', route)
+      // console.log('route', route)
       if(route.query.type){
         state.filter.typeId = route.query.type
         applyFilter()
@@ -651,7 +651,11 @@ export default {
     function onBookClicked (book) {
       // установка модели выбранной книги в состояние компонента
       state.selectedBook = book
-      router.push({ path: 'my-books/' + book.id })
+      // установка маршрута к разделу "Мои книги" с ИД выбранной книги
+      router.push({ name: 'MyBooksBook', params: { id: book.id } })
+      // вызов метода отображения детализации книги
+      // без передачи ИД книги, т.к. модель выбранной книги уже есть на фронтенде
+      // и установлена в состояние компонента 
       showBookDetails()
     }
     // отображение детализации книги,
@@ -670,8 +674,14 @@ export default {
     }
     // обработчик закрытия окна детализации книги
     function bookDitailsDialogClosedHandler () {
-      // зануление модели выбранной книги в стостояние
+      // зануление модели выбранной книги в стостоянии компонента
       state.selectedBook = null
+      // установка маршрута к разделу "Мои книги" без ИД выбранной книги
+      router.push({ name: 'MyBooks' })
+      //
+      if (books.value.length === 0) {
+        loadMoreBooks()
+      }
     }
     // обработчик клика кнопки открытия окна добавления / редактирования книги
     function startBookAdd () {

@@ -7,41 +7,36 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
         @click="state.menuShow = false"
         :index="index.toString()"
     )
-        router-link( :to="`${link.url}`" ) {{ link.title }}
+      router-link( :to="`${link.url}`" ) {{ link.title }}
     el-menu-item
-      span.lang-icon(
+      el-divider(direction='vertical')
+    li.lang-menu
+      span(
         v-for="(lang, index) in languages"
         :key="index"
         :index="index.toString()"
         @click="setLocale(lang.localeKey)"
         :class="{ 'active-lang': i18n.getLocale() === lang.localeKey }"
       )
-        flag(:iso="lang.flagKey")
-    //-
-      span.lang-icon(
-        @click="setLocale('en')"
-        :class="{ 'active-lang': i18n.getLocale() === 'en' }"
-      )
-        flag(:iso="'gb'")
-      span.lang-icon(
-        @click="setLocale('ru')"
-        :class="{ 'active-lang': i18n.getLocale() === 'ru' }"
-      )
-        flag(:iso="'ru'")
+        span.lang-icon
+          flag(:iso="lang.flagKey")
+    el-menu-item
+      el-divider(direction='vertical')
     // меню учетной записи, если пользователь аутентифицирован
-    el-menu-item(v-if="checkUser")
+    li.auth-menu
+      span(v-if="checkUser")
         el-dropdown
-            span.el-dropdown-link
-                // el-avatar(:size="64" :src="userData.photo")
-                img(:src="userData.photo" style="height: 32px; width: 32px; border-radius: 50%")
-                i.el-icon-arrow-down.el-icon--right
-            template(#dropdown='')
-                el-dropdown-menu
-                    el-dropdown-item(disabled='') {{userData.name}}
-                    el-dropdown-item(disabled='') {{userData.email}}
-                    el-dropdown-item(divided='' @click='signOut') {{t('base.header.signOutButton')}}
-    // ссылка на раздел аутентификации, если пользователь не аутентифицирован
-    el-menu-item(v-else)
+          span.el-dropdown-link
+            // el-avatar(:size="64" :src="userData.photo")
+            img(:src="userData.photo" style="height: 32px; width: 32px; border-radius: 50%")
+            i.el-icon-arrow-down.el-icon--right
+          template(#dropdown='')
+            el-dropdown-menu
+              el-dropdown-item(disabled='') {{userData.name}}
+              el-dropdown-item(disabled='') {{userData.email}}
+              el-dropdown-item(divided='' @click='signOut') {{t('base.header.signOutButton')}}
+      // ссылка на раздел аутентификации, если пользователь не аутентифицирован
+      span(v-else)
         router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
 </template>
 <script>
@@ -65,19 +60,6 @@ export default {
         const userData = computed(() => store.getters.user)
         const isLoading = computed(() => store.getters.loading)
         const languages = computed(() => store.getters.languages)
-        /* const linkMenu = computed(() =>
-          (checkUser.value)
-            ? [
-                { title: 'Home', url: '/', icon: 'mdi-home' },
-                { title: 'Search', url: '/search', icon: 'mdi-book-search-outline' },
-                { title: 'My Offers', url: '/my-offers', icon: 'mdi-format-list-bulleted' },
-                { title: 'Contacts', url: '/contacts', icon: 'mdi-contact-phone-outline' }
-              ] : [
-                { title: 'Home', url: '/', icon: 'mdi-home' },
-                { title: 'Search', url: '/search', icon: 'mdi-book-search-outline' },
-                { title: 'Contacts', url: '/contacts', icon: 'mdi-contact-phone-outline' }
-              ]
-          ) */
         const linkMenu = computed(() =>
           (checkUser.value)
             ? [
@@ -116,6 +98,20 @@ export default {
 <style scoped lang="stylus">
 .is-active
   font-weight bold
+.lang-menu
+  float left
+  height 60px
+  line-height 60px
+.auth-menu
+  float left
+  height 60px
+  line-height 60px
+  font-size 14px
+  a
+    color #909399
+    /* text-decoration none */
+  img
+    margin-bottom -10px
 .lang-icon
   margin-left 5px
   margin-right 5px

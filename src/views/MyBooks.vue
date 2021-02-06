@@ -96,12 +96,13 @@ tour(
   v-if="tourIsVisible"
   @update="tourUpdate($event)"
 )
-el-row#search-row(type="flex" justify="center" align="middle")
-  el-col(:span="2")
+el-row(type="flex" justify="center" align="middle")
+  el-col(:span="24")
     h1 Мои книги
-  el-col(:lg="16" :sm="16" :xs="16" id="step_0" ref='searchInputRef')
+el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
+  el-col(:lg="20" :sm="20" :xs="24" id="step_0" ref='searchInputRef')
     el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
-  el-col(:span="6" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
+  el-col(:lg="4" :sm="4" :xs="24" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
     //- el-tooltip(content="Добавить книгу" placement="bottom" effect="light" id="step_1")
     el-button(@click="startBookAdd" id="step_1"  ref='addBookButtonRef')
       i.el-icon-plus
@@ -111,16 +112,16 @@ el-row#search-row(type="flex" justify="center" align="middle")
 //- область основного содержимого - карточки описаний собственных книг
 .infinite-wrapper
   el-row.books-row(type='flex' justify='center' align='middle' :gutter="15")
-    el-col.book-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
+    el-col.book-col(:key="book.id" v-for="book in books" :lg="12" :sm="24" :xs="24")
       el-card
         el-row(type='flex' justify='start' align='middle' :gutter="5")
-          el-col(:span="10" v-bind:style="{ 'text-align': 'center' }" @click="() => onBookClicked(book)")
+          el-col(:lg="8" :sm="8" :xs="24" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }" @click="() => onBookClicked(book)")
             el-image.card-image(v-if='book.image' :src='book.image' fit="cover")
             el-image.card-image(v-else src='' fit="cover")
               template(#error)
                 div.image-slot
                   img.card-image(src="../assets/no_image.png")
-          el-col(:span="14" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }")
+          el-col(:lg="16" :sm="16" :xs="24" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }")
             h3.book-card__title(@click="() => onBookClicked(book)")
               span {{book.title}}
               span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
@@ -809,7 +810,11 @@ export default {
 </script>
 <style lang="stylus" scoped>
 #search-row
-  padding 15px
+  padding-left 5px
+  padding-right 20px
+  > .el-col
+    padding-top 5px
+    padding-bottom 5px
   .vs-con-input-label
     width 100% !important
     min-width 200px

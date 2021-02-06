@@ -23,6 +23,10 @@ export default {
   color #2c3e50
 </style>
 <style lang='stylus' scoped>
+.el-header
+  top 0
+  position sticky
+  z-index 999
 @media screen and (min-width: 768px)
   .container
     width 1140px

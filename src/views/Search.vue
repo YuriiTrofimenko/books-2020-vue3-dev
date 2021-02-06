@@ -1,7 +1,5 @@
 <template lang='pug'>
 div
-  //- vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
-  //-   | Hello!
   //- боковая панель фильтра и сортировки
   el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
     //- область схлопывающихся панелей
@@ -38,7 +36,7 @@ div
           .filter-form__collapse-header
             | Тип предложения
             i.header-icon.el-icon-place
-        el-select(v-model='state.filter.type' clearable placeholder="выбрать тип")
+        el-select(v-model='state.filter.typeId' clearable placeholder="выбрать тип")
           el-option(
             :key='index'
             :value='typeOption.value'
@@ -60,17 +58,38 @@ div
   )
   //- el-row.infinite-wrapper(type='flex' justify='center' align='middle' ref='scrollComponent')
   .infinite-wrapper
-    el-row(type='flex' justify='center' align='middle')
-      el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
+    el-row.books-row(type='flex' justify='center' align='middle' :gutter="15")
+      el-col.book-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
         el-card
-          h3
-            | {{book.title}}
-          div
-            img(v-if='book.image' :src='book.image')
-            img(v-else src='../assets/logo.png')
-          div
-            span
-              | {{book.description}}
+          el-row(type='flex' justify='start' align='middle' :gutter="5")
+            el-col(:span="10" v-bind:style="{ 'text-align': 'center' }" @click="() => onBookClicked(book)")
+              el-image.card-image(v-if='book.image' :src='book.image' fit='cover')
+              el-image.card-image(v-else src='' fit='cover')
+                template(#error)
+                  div.image-slot
+                    img.card-image(src="../assets/no_image.png")
+            el-col(:span="14" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }")
+              h3.book-card__title(@click="() => onBookClicked(book)")
+                span {{book.title}}
+                span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
+              h4(v-if='typeOptions && book.type == 1' v-bind:style="{ 'color': '#093' }") {{typeOptions.find(t => t.value === book.type).text}}
+              h4(v-if='typeOptions && book.type == 2' v-bind:style="{ 'color': '#69f' }") {{typeOptions.find(t => t.value === book.type).text}}
+              div(v-if='book.author')
+                strong автор(ы):&nbsp;
+                span {{book.author}}
+              div(v-if='book.publicationDate')
+                strong год:&nbsp;
+                span {{book.publicationDate}}
+              div(v-if='book.language')
+                strong язык(и):&nbsp;
+                span {{book.language}}
+              div(v-if='book.genre')
+                strong жанр:&nbsp;
+                span {{book.genre}}
+              div
+                strong расположение:&nbsp;
+                span {{book.country}}, {{book.city}}
+              .book-card__ellipsis-description(v-if='book.description') {{book.description}}
           div
             el-row(justify='flex-end')
               el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
@@ -102,7 +121,7 @@ export default {
           id: null,
           name: ''
         },
-        type: null
+        typeId: null
       },
       countryOptionsKey: 'name',
       cityOptionsKey: 'name',
@@ -217,11 +236,11 @@ export default {
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
-		onUnmounted(() => {
+		onUnmounted(async () => {
       // удаление обработчика события прокрутки
       window.removeEventListener("scroll", handleScroll)
       // очистка списка моделей книг
-      store.dispatch('clearBooks')
+      await store.dispatch('clearBooks')
 		})
     // Содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
@@ -306,10 +325,44 @@ export default {
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()
     }
-    // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
-    function showBookDetails (id) {
-      state.selectedBookId = id
-      state.activeRequestPrompt = true
+    // обработчик клика по изображению или заголовку на карточке книги в сетке
+    function onBookClicked (/* book */) {
+      // установка модели выбранной книги в состояние компонента
+      // state.selectedBook = book
+      // установка маршрута к разделу "Мои книги" с ИД выбранной книги
+      // router.push({ name: 'MyBooksBook', params: { id: book.id } })
+      // вызов метода отображения детализации книги
+      // без передачи ИД книги, т.к. модель выбранной книги уже есть на фронтенде
+      // и установлена в состояние компонента 
+      // showBookDetails()
+    }
+    // отображение детализации книги,
+    // выбранной пользователем из списка,
+    // или по ИД, указанному в адресной строке
+    async function showBookDetails (/* id */) {
+      // если на фронтенде информации о книге нет -
+      // запрашиваем ее с сервера по ИД
+      /* if (!state.selectedBook) {
+        state.selectedBook =
+          await store.dispatch('getBookById', { id })
+      }
+      if(state.selectedBook){
+        console.log("state.selectedBook", state.selectedBook.image.length)
+      }
+      
+      // отображение окна детализации книги
+      state.bookDetailsDialogVisible = true */
+    }
+    // обработчик закрытия окна детализации книги
+    function bookDitailsDialogClosedHandler () {
+      // зануление модели выбранной книги в стостоянии компонента
+      /* state.selectedBook = null
+      // установка маршрута к разделу "Мои книги" без ИД выбранной книги
+      router.push({ name: 'MyBooks' })
+      //
+      if (books.value.length === 0) {
+        loadMoreBooks()
+      } */
     }
     // Отправка запроса на книгу владельцу, если кликнута положительная кнопка диалога
     function acceptAlert () {
@@ -325,7 +378,8 @@ export default {
       books, suggestedCountries, suggestedCities, typeOptions, tourIsVisible, // computed
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
-      applyFilter, showBookDetails, acceptAlert, tourUpdate, // methods
+      applyFilter, showBookDetails, acceptAlert, tourUpdate,
+      onBookClicked, bookDitailsDialogClosedHandler, // methods
       searchInputRef, filterButtonRef // refs
     }
   }
@@ -337,10 +391,28 @@ img
   max-height 300px
   max-width 100%
 .infinite-wrapper
-  overflow scroll
-  height 800px
+  overflow-y scroll
+  overflow-x hidden
+  height 933px
+  max-height 933px
+  /* margin-top -1px */
+  .books-row
+    padding-left 7.5px
+    padding-right 7.5px
+    .book-col
+      padding-top 7.5px !important
+      padding-bottom 7.5px !important
+    .card-image
+      width 150px
+      height 225px
+    .book-card__title
+      margin-top: 0
+    .book-card__ellipsis-description
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
 .filter-form__collapse-body
-  margin: 10px
+  margin 10px
   /* .filter-form__collapse-header
     margin-left 15px */
 #search-row

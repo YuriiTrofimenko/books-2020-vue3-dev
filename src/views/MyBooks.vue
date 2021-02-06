@@ -29,7 +29,7 @@ el-dialog(
       el-form-item(label="Язык(и)" prop="language")
         el-input(placeholder='укажите язык(и) текста' v-model='state.currentBook.language')
       el-form-item(label="Автор(ы)")
-        el-input(placeholder='укажите автора' v-model='state.currentBook.author')
+        el-input(placeholder='укажите автора' v-model='state.currentBook.author' maxlength='150')
       el-form-item(label="Ваша страна" prop="country")
         auto-complete(
           :options="suggestedCountries"
@@ -64,7 +64,7 @@ el-dialog(
           template(#title)
             | Дополнительная информация
           el-form-item(label="Описание/примечания")
-            el-input(type="textarea" maxlength="512" show-word-limit placeholder='добавьте описание/примечания' v-model='state.currentBook.description')
+            el-input(type="textarea" maxlength="1024" show-word-limit placeholder='добавьте описание/примечания' v-model='state.currentBook.description')
           el-form-item(label="Номер тома/выпуска")
             el-input(placeholder='укажите номер/выпуск' v-model='state.currentBook.volumeOrIssue')
           el-form-item(label="Год издания" prop="publicationDate")
@@ -82,8 +82,9 @@ el-dialog(
   v-model="state.bookDetailsDialogVisible"
   @closed="bookDitailsDialogClosedHandler"
 )
-  book-details-card(
+  my-book-details-card(
     :book="state.selectedBook"
+    :typeName="(state.selectedBook) ? typeOptions.find(t => t.value === state.selectedBook.type).text : ''"
     :startBookEdit="() => startBookEdit(state.selectedBook.id)"
     :startBookDelete="() => startBookDelete(state.selectedBook.id)"
     :startBookShare="() => startBookShare(state.selectedBook.id)"
@@ -95,10 +96,12 @@ tour(
   v-if="tourIsVisible"
   @update="tourUpdate($event)"
 )
-el-row(type="flex" justify="center" align="center")
-  el-col(:span="12")
+el-row#search-row(type="flex" justify="center" align="middle")
+  el-col(:span="2")
     h1 Мои книги
-  el-col(:span="6" :offset="6" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
+  el-col(:lg="16" :sm="16" :xs="16" id="step_0" ref='searchInputRef')
+    el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
+  el-col(:span="6" v-bind:style="{ 'align-self': 'center', 'text-align': 'right' }")
     //- el-tooltip(content="Добавить книгу" placement="bottom" effect="light" id="step_1")
     el-button(@click="startBookAdd" id="step_1"  ref='addBookButtonRef')
       i.el-icon-plus
@@ -107,8 +110,8 @@ el-row(type="flex" justify="center" align="center")
       span Фильтр
 //- область основного содержимого - карточки описаний собственных книг
 .infinite-wrapper
-  el-row(type='flex' justify='center' align='middle' :gutter="15")
-    el-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
+  el-row.books-row(type='flex' justify='center' align='middle' :gutter="15")
+    el-col.book-col(:key="book.id" v-for="book in books" :lg="12" :sm="12" :xs="24")
       el-card
         el-row(type='flex' justify='start' align='middle' :gutter="5")
           el-col(:span="10" v-bind:style="{ 'text-align': 'center' }" @click="() => onBookClicked(book)")
@@ -118,15 +121,25 @@ el-row(type="flex" justify="center" align="center")
                 div.image-slot
                   img.card-image(src="../assets/no_image.png")
           el-col(:span="14" v-bind:style="{ 'align-self': 'start', 'text-align': 'left' }")
-            h3(@click="() => onBookClicked(book)")
+            h3.book-card__title(@click="() => onBookClicked(book)")
               span {{book.title}}
               span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
-            h4(v-if='book.author') автор: {{book.author}}
-            h4(v-else) автор: -
-            span(v-if='book.description') {{book.description}}
+            h4(v-if='typeOptions && book.type == 1' v-bind:style="{ 'color': '#093' }") {{typeOptions.find(t => t.value === book.type).text}}
+            h4(v-if='typeOptions && book.type == 2' v-bind:style="{ 'color': '#69f' }") {{typeOptions.find(t => t.value === book.type).text}}
+            h4(v-if='typeOptions && book.type == 3' v-bind:style="{ 'color': 'gray' }") {{typeOptions.find(t => t.value === book.type).text}}
+            div(v-if='book.author')
+              strong автор:&nbsp;
+              span {{book.author}}
+            div(v-if='book.publicationDate')
+              strong год:&nbsp;
+              span {{book.publicationDate}}
+            div(v-if='book.language')
+              strong язык:&nbsp;
+              span {{book.language}}
             div(v-if='book.genre')
               strong жанр:&nbsp;
               span {{book.genre}}
+            .book-card__ellipsis-description(v-if='book.description') {{book.description}}
         el-row(justify='flex-end')
           el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-edit' @click='() => startBookEdit(book.id)')
           el-button(circle icon='el-icon-delete' @click='startBookDelete(book.id)')
@@ -136,12 +149,12 @@ el-row(type="flex" justify="center" align="center")
 import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FilePreview from '../components/common/FilePreview'
-import BookDetailsCard from './myBooks/BookDetailsCard'
+import MyBookDetailsCard from './myBooks/MyBookDetailsCard'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
   name: 'MyBooks',
-  components: { AutoComplete, FilePreview, BookDetailsCard },
+  components: { AutoComplete, FilePreview, MyBookDetailsCard },
   setup () {
     let editedBookCountryName = ''
     let editedBookCityName = ''
@@ -162,6 +175,8 @@ export default {
     const filePreviewRef = ref(null)
     const addBookButtonRef = ref(null)
     const filterButtonRef = ref(null)
+    const searchInputRef = ref(null)
+    // стартовые значения для состояния компонента
     const initialState = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
       addBookDialogVisible: false,
@@ -190,7 +205,8 @@ export default {
       },
       addBookFormRules: {
         title: [
-          { required: true, message: 'Нужно указать название книги', trigger: 'blur' }
+          { required: true, message: 'Нужно указать название книги', trigger: 'blur' },
+          { min: 1, max: 150, message: 'Длина заголовка должна быть от 1 до 150 символов', trigger: 'blur' }
         ],
         type: [
           { required: true, message: 'Нужно выбрать тип', trigger: 'change' }
@@ -202,19 +218,14 @@ export default {
           { required: true, message: 'Нужно указать город Вашего расположения', trigger: 'blur' }
         ],
         language: [
-          { required: true, message: 'Нужно указать язык(и) текста', trigger: 'blur' }
+          { required: true, message: 'Нужно указать язык(и) текста', trigger: 'blur' },
+          { min: 1, max: 25, message: 'Название языка должно быть от 1 до 25 символов', trigger: 'blur' }
         ]
       },
       countryOptionsKey: 'name',
       cityOptionsKey: 'name',
       clearCountriesHandler: false,
       clearCitiesHandler: false,
-      // TODO загружать типы книг с сервера
-      /* typeOptions: [
-        {text: 'отдам', value: 1},
-        {text: 'дам почитать', value: 2},
-        {text: 'личная', value: 3}
-      ], */
       // статус отправки данных о новой/редактируемой книге на сервер
       submitStatus: '',
       // Флаг отображения окна детализации книги
@@ -287,9 +298,18 @@ export default {
       window.addEventListener("scroll", handleScroll)
       const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
       const addBookButtonPosition = addBookButtonRef.value.$el.getBoundingClientRect()
+      const searchInputPosition = searchInputRef.value.$el.getBoundingClientRect()
       await store.dispatch('loadTours')
       // если есть модель тура, полученная с сервера
       state.tourData.steps = [{
+        targetElementId: 'step_0',
+        content: `Найдите книгу по названию/автору`,
+        next: 'далее',
+        direction: 'bottom',
+        top: searchInputPosition.top + 60 + 'px',
+        left: searchInputPosition.left + 'px'
+      },
+      {
         targetElementId: 'step_1',
         content: 'Добавьте описание книги',
         next: 'далее',
@@ -317,12 +337,18 @@ export default {
     })
     // обработчик события жизненного цикла компонента:
     // был отмонтирован от дерева
-		onUnmounted(() => {
+		onUnmounted(async () => {
       // удаление обработчика события прокрутки
       window.removeEventListener("scroll", handleScroll)
       // очистка списка моделей книг
-      store.dispatch('clearBooks')
+      await store.dispatch('clearMyBooks')
     })
+    // содержимое поля ввода поиска изменилось на один символ
+    function onSearchInputChange () {
+      // перезагрузка бесконечной загрузки книг
+      resetInfiniteBookLoading()
+    }
+    // программная установка текущего маршрута с указанием параметров фильтра
     function setUrl () {
       router.push({ path: 'my-books', query: { type: state.filter.typeId } })
     }
@@ -492,28 +518,6 @@ export default {
             active: state.currentBook.active
           })
             .then(() => {
-              /* for (const key in state.currentBook) {
-                // очистка значений всех свойств модели текущей книги
-                // if (state.currentBook.hasOwnProperty(key)) {
-                if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
-                  state.currentBook[key] = ''
-                }
-                // скрытие диалога добавления новой книги
-                // state.addBookDialogVisible = false
-              } */
-              // повторная инициализация свойств модели текущей книги
-              // со сложными значениями
-              /* state.currentBook.country = {
-                id: null,
-                name: ''
-              }
-              state.currentBook.city = {
-                id: null,
-                name: '',
-                countryId: null
-              } */
-              // console.log('state.currentBook', state.currentBook)
-              // console.log('bookForm.value.resetFields', bookForm.value.resetFields)
               // уведомление пользователя об успешном добавлении
               // описания книги
               if (!store.getters.error) {
@@ -562,30 +566,7 @@ export default {
             image: state.currentBook.image,
             active: state.currentBook.active,
             id: state.selectedBookId
-          })
-            .then(() => {
-              /* for (const key in state.currentBook) {
-                console.log('key', key)
-                console.log('hasOwnProperty', Object.prototype.hasOwnProperty.call(state.currentBook, key))
-                console.log('state.currentBook[key]', state.currentBook[key])
-                if (Object.prototype.hasOwnProperty.call(state.currentBook, key)) {
-                  state.currentBook[key] = ''
-                  console.log('state.currentBook', state.currentBook)
-                  console.log('state.currentBook[key]', state.currentBook[key])
-                }
-              }
-              state.currentBook.country = {
-                id: null,
-                name: ''
-              }
-              state.currentBook.city = {
-                id: null,
-                name: '',
-                countryId: null
-              }
-              console.log('state.currentBook', state.currentBook)
-              console.log('bookForm.value.resetFields', bookForm.value.resetFields)
-              bookForm.value.resetFields() */
+          }).then(() => {
               if (!store.getters.error) {
                 notify({
                   type: 'success',
@@ -667,8 +648,11 @@ export default {
       if (!state.selectedBook) {
         state.selectedBook =
           await store.dispatch('getBookById', { id })
-        console.log("state.selectedBook", state.selectedBook)
       }
+      if(state.selectedBook){
+        console.log("state.selectedBook", state.selectedBook.image.length)
+      }
+      
       // отображение окна детализации книги
       state.bookDetailsDialogVisible = true
     }
@@ -777,17 +761,13 @@ export default {
 				loadMoreBooks()
 			}
     }
-    // Содержимое поля ввода поиска изменилось на один символ
-    function onSearchInputChange () {
-      resetInfiniteBookLoading()
-    }
     // Обработка клика по кнопке применения фильтра
     function applyFilter () {
       resetInfiniteBookLoading()
     }
-    function resetInfiniteBookLoading () {
+    async function resetInfiniteBookLoading () {
       // очистка списка моделей книг
-      store.dispatch('clearMyBooks')
+      await store.dispatch('clearMyBooks')
       // вызов метода получения порции моделей книг
       // для старта процесса бесконечной загрузки с нуля
       loadMoreBooks()
@@ -822,43 +802,42 @@ export default {
       onSearchInputChange, applyFilter,
       tourUpdate, // methods
       bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef,
-      filterButtonRef, addBookButtonRef // refs
+      filterButtonRef, addBookButtonRef, searchInputRef // refs
     }
   }
 }
 </script>
 <style lang="stylus" scoped>
+#search-row
+  padding 15px
+  .vs-con-input-label
+    width 100% !important
+    min-width 200px
+    margin-right 15px
 .add-book-dialog-body
   max-height calc(100vh - 510px)
   overflow-y auto
-/* img
-  max-height 300px
-  max-width 100% */
 .preview
   max-height 300px
-/* input[type=file]
-  width 0px
-  height 0px
-  position absolute
-  z-index -1
-  overflow hidden
-  opacity 0 */
 .infinite-wrapper
-  overflow scroll
-  height 800px
-  .card-image
-    width 150px
-    height 225px
-/* .tour-tip
-  background #fff
-  box-shadow 0 2px 12px 0 rgba(0,0,0,.1)
-  & > *
-    border 1.5em solid red
-    background red
-    border-color red red red red
-    box-shadow -5px 5px 5px 0 rgba(0,0,0,.25)
-    top -50px !important
-  .button
-    background-color #fff !important
-    box-shadow 0 2px 12px 0 rgba(0,0,0,.1) */
+  overflow-y scroll
+  overflow-x hidden
+  height 933px
+  max-height 933px
+  /* margin-top -1px */
+  .books-row
+    padding-left 7.5px
+    padding-right 7.5px
+    .book-col
+      padding-top 7.5px !important
+      padding-bottom 7.5px !important
+    .card-image
+      width 150px
+      height 225px
+    .book-card__title
+      margin-top: 0
+    .book-card__ellipsis-description
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
 </style>

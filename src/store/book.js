@@ -12,7 +12,8 @@ export default ({
     // идентификатор самого последнего скачанного описания книги
     oldestBookId: null,
     // идентификатор самого последнего скачанного описания собственной книги
-    oldestMyBookId: null
+    oldestMyBookId: null,
+    myTotalCount: 0
   },
   // Функции изменения состояния
   mutations: {
@@ -65,6 +66,11 @@ export default ({
       // console.log(...payload.books)
       // console.log('loadBooks ', payload)
       state[payload.target].push(...payload.books)
+    },
+    loadTotalCount (state, payload) {
+      // console.log(...payload.books)
+      // console.log('loadBooks ', payload)
+      state[payload.target] = payload.count
     },
     // Редактирование собственной книги
     editBook (state, payload) {
@@ -479,7 +485,38 @@ export default ({
         commit('setError', error.message)
         throw error
       }
+    },
+
+    async loadMyTotalCount ({commit, getters}) {
+      commit('clearError')
+      commit('setLoading', true)
+      try {
+        const url = getters.baseRestApiUrl + `?controller=book&action=getMyTotalCount&userId=${getters.user.id}`
+        const requestData = {
+          method: 'GET',
+          mode: 'cors'
+        }
+        const request = new Request(url, requestData)
+        return await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          if (response.data) {
+            commit('loadTotalCount', {target: 'myTotalCount', count: response.data.totalCount})
+          } else {
+            commit('setError', response.message)
+          }
+        }).catch(function (e) {
+          console.log(e)
+        }).finally(function () {
+          commit('setLoading', false)
+        })
+      } catch (error) {
+        commit('setLoading', false)
+        commit('setError', error.message)
+        throw error
+      }
     }
+
   },
   getters: {
     books (state) {
@@ -493,6 +530,9 @@ export default ({
     },
     oldestBookId (state) {
       return state.oldestBookId
+    },
+    myTotalCount (state) {
+      return state.myTotalCount
     }
   }
 })

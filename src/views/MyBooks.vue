@@ -97,8 +97,10 @@ tour(
   @update="tourUpdate($event)"
 )
 el-row(type="flex" justify="center" align="middle")
-  el-col(:span="24")
+  el-col(:lg="4" :xs="12")
     h1 Мои книги
+  el-col(:lg="20" :xs="12")
+    span ({{books.length}} / {{myBooksTotalCount}})
 el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
   el-col(:lg="20" :sm="20" :xs="24" id="step_0" ref='searchInputRef')
     el-input(suffix-icon="search" placeholder='Поиск по названию / автору' v-model='state.filter.search' @input='onSearchInputChange')
@@ -266,6 +268,7 @@ export default {
     const currentBookType = computed(() => state.currentBook.type)
     // 
     const books = computed(() => store.getters.myBooks)
+    const myBooksTotalCount = computed(() => store.getters.myTotalCount)
     // eslint-disable-next-line no-unused-vars
     const typeOptions = computed(() => store.getters.types.map((item, index, types) =>
        {return {
@@ -295,6 +298,7 @@ export default {
       } else {
         loadMoreBooks()
       }
+      store.dispatch('loadMyTotalCount')
       // установка обработчика события прокрутки
       window.addEventListener("scroll", handleScroll)
       const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
@@ -791,7 +795,7 @@ export default {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
       currentBookType, books, typeOptions,
-      tourIsVisible, currentTour, // computed
+      tourIsVisible, currentTour, myBooksTotalCount, // computed
       countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       yearInputChange,

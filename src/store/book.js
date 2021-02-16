@@ -127,7 +127,7 @@ export default ({
   // Действия, которые можно вызывать и из других файлов
   actions: {
     // Создание описания книги
-    async newBook ({commit, getters}, payload) {
+    async newBook ({commit, getters, dispatch}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -170,6 +170,7 @@ export default ({
             commit('newBook', {
               ...response.data
             })
+            dispatch('loadMyTotalCount')
           } else {
             commit('setError', response.message)
           }

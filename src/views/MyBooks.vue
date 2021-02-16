@@ -147,6 +147,8 @@ el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
           el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-edit' @click='() => startBookEdit(book.id)')
           el-button(circle icon='el-icon-delete' @click='startBookDelete(book.id)')
           el-button(circle icon='el-icon-share' @click='startBookShare(book.id)')
+  el-row(v-if='books.length < myBooksTotalCount' type='flex' justify='center' align='middle')
+    el-button(@click='loadMoreBooks') More...
 </template>
 <script>
 import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
@@ -269,6 +271,7 @@ export default {
     // 
     const books = computed(() => store.getters.myBooks)
     const myBooksTotalCount = computed(() => store.getters.myTotalCount)
+    // const infiniteLoadingCompleted = computed(() => state.isInfiniteLoadingCompleted)
     // eslint-disable-next-line no-unused-vars
     const typeOptions = computed(() => store.getters.types.map((item, index, types) =>
        {return {
@@ -805,7 +808,7 @@ export default {
       onBookClicked, bookDitailsDialogClosedHandler,
       startBookAdd, startBookEdit, startBookDelete, startBookShare,
       onSearchInputChange, applyFilter,
-      tourUpdate, // methods
+      tourUpdate, loadMoreBooks, // methods
       bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef,
       filterButtonRef, addBookButtonRef, searchInputRef // refs
     }

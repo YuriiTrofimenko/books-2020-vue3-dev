@@ -89,8 +89,20 @@ el-dialog(
     :startBookDelete="() => startBookDelete(state.selectedBook.id)"
     :startBookShare="() => startBookShare(state.selectedBook.id)"
   )
+//- диалоговое окно подтверждения удаления книги
+el-dialog(
+  :title="'Удаление книги'"
+  v-model="state.deleteBookDialogVisible"
+  width="350px"
+)
+  span.delete-book-dialog-body Внимание! Описание книги будет удалено безвозвратно. Если нужно временно скрыть книгу, кликните "Отмена" и установите тип ее описания "личная". Если все же необходимо удалить описание книги, кликните "Удалить".
+  template(#footer)
+    span.dialog-footer
+      el-button(@click="deleteBookDialogCancel") Отмена
+      el-button(@click="deleteBookDialogOk") Удалить
 //- заголовок раздела с кнопкой открытия диалога добавления новой книги
-//- и с кнопкой открытия панели фильтра
+//- и кнопкой открытия панели фильтра,
+//- а также - экземпляр компонента отображения обучающих подсказок
 tour(
   :data="state.tourData"
   v-if="tourIsVisible"
@@ -185,6 +197,8 @@ export default {
     const initialState = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
       addBookDialogVisible: false,
+      // Флаг отображения окна подтверждения удаления описания книги
+      deleteBookDialogVisible: false,
       // Данные описания книги, которое создается или редактируется
       currentBook: {
         title: '',
@@ -675,6 +689,59 @@ export default {
         loadMoreBooks()
       }
     }
+    // обработчик клика по кнопке "Удалить"
+    // в диалоговом окне удаления описания книги
+    function deleteBookDialogOk () {
+      /* if (!state.selectedBookId) {
+        console.log('no book')
+      } else {
+        console.log('book id: ', state.selectedBookId)
+      } */
+      // Редактирование выбранной книги
+      if (state.selectedBookId) {
+        store.dispatch(
+            'deleteBook',
+            {id: state.selectedBookId}
+          ).then(() => {
+            if (!store.getters.error) {
+              notify({
+                type: 'success',
+                title: 'Действие выполнено',
+                message: `Книга удалена`
+              })
+            } else {
+              notify({
+                type: 'error',
+                title: 'Ошибка',
+                message: `Ошибка удаления книги`
+              })
+            }
+            state.submitStatus = 'OK'
+          })
+          .catch(err => {
+            state.submitStatus = err.message
+            notify({
+              type: 'error',
+              title: 'Ошибка',
+              message: `Ошибка удаления книги: ${state.submitStatus}`
+            })
+          })
+          .finally(() => {
+            // переключение диалога работы с книгой в режим добавления новой
+            state.selectedBookId = null
+            // скрытие диалога удаления описания книги
+            state.deleteBookDialogVisible = false
+          })
+      }
+    }
+    // обработчик клика по кнопке "Отмена"
+    // в диалоговом окне удаления описания книги
+    function deleteBookDialogCancel () {
+      // переключение диалога работы с книгой в режим добавления новой
+      state.selectedBookId = null
+      // скрытие диалога удаления описания книги
+      state.deleteBookDialogVisible = false
+    }
     // обработчик клика кнопки открытия окна добавления / редактирования книги
     function startBookAdd () {
       resetAddBookDialog()
@@ -710,7 +777,8 @@ export default {
     }
     // обработчик запуска диалога удаления выбранной книги
     function startBookDelete (bookId) {
-      console.log(startBookDelete, bookId)
+      state.deleteBookDialogVisible = true
+      state.selectedBookId = bookId
     }
     // обработчик запуска панели шаринга в соцсети информации о выбранной книге
     function startBookShare (bookId) {
@@ -806,6 +874,7 @@ export default {
       addBookDialogOpenedHandler, addBookDialogClosedHandler, addBookDialogOk, addBookDialogCancel,
       resetAddBookDialog,
       onBookClicked, bookDitailsDialogClosedHandler,
+      deleteBookDialogOk, deleteBookDialogCancel,
       startBookAdd, startBookEdit, startBookDelete, startBookShare,
       onSearchInputChange, applyFilter,
       tourUpdate, loadMoreBooks, // methods
@@ -829,6 +898,9 @@ export default {
 .add-book-dialog-body
   max-height calc(100vh - 510px)
   overflow-y auto
+.delete-book-dialog-body
+  word-break normal !important
+  hyphens auto
 .preview
   max-height 300px
 .infinite-wrapper

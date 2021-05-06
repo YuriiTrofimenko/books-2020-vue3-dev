@@ -104,11 +104,14 @@ export default ({
       // по идентификатору книги, подлежащей удалению,
       // найти ссылку на элемент в массиве
       const deletedBook = state.myBooks.find(book => book.id === payload.id)
+      console.log(state.myBooks)
+      console.log(deletedBook)
       // получить индекс по ссылке на элемент массива,
       // найти в массиве по индексу книгу подлежащую удалению,
       // и удалить один элемент массива, начиная с найденного, включительно,
       // то есть ту самую книгу
-      state.myBooks.splice(state[payload.target].indexOf(deletedBook), 1)
+      state.myBooks.splice(state.myBooks.indexOf(deletedBook), 1)
+      console.log(state.myBooks)
     },
     clearBooks (state) {
       state.books = []
@@ -388,13 +391,35 @@ export default ({
         throw error
       }
     },
-    async deleteBook ({commit}, id) {
+    // действие удаления книги
+    async deleteBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
+      const oldId = payload.id
       try {
-        // await firebase.database().ref(getters.user.id + '/books').child(id).remove()
-        commit('deleteBook', {id, target: 'books'})
-        commit('setLoading', false)
+        const url = getters.baseRestApiUrl + `?controller=book&action=delete&id=${payload.id}`
+        const requestData = {
+          method: 'GET',
+          mode: 'cors'
+        }
+        const request = new Request(url, requestData)
+        return await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          console.log(response)
+          if (response.status === 'ok') {
+            console.log({id: oldId})
+            commit('deleteBook', {id: oldId})
+          } else if (response.message) {
+            commit('setError', response.message)
+          } else {
+            commit('setError', 'Неизвестная ошибка')
+          }
+        }).catch(function (e) {
+          console.log(e)
+        }).finally(function () {
+          commit('setLoading', false)
+        })
       } catch (error) {
         commit('setLoading', false)
         commit('setError', error.message)
@@ -410,7 +435,7 @@ export default ({
       commit('setOldestBookId', null)
     },
     // Запрос на получение книги
-    async requestBook ({commit, getters}, payload) {
+    requestBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -423,15 +448,16 @@ export default ({
           body: JSON.stringify(data)
         }
         const request = new Request(url, requestData)
-        await fetch(request).then(function (response) {
+        fetch(request).then(function (response) {
           return response.json()
         }).then(function (response) {
-          // TODO уведомить пользователя, что его запрос отправлен
-          console.log(response)
+          if (!response.data) {
+            commit('setError', response.message)
+          }
+          commit('setLoading', false)
         }).catch(function (e) {
-          console.log(e)
+          commit('setError', e.message)
         })
-        commit('setLoading', false)
       } catch (error) {
         commit('setLoading', false)
         commit('setError', error.message)

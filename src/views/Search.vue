@@ -45,6 +45,17 @@ div
           )
       //- el-collapse-item(name='3')
       el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
+  //- диалоговое окно подтверждения текущего действия пользователя
+  el-dialog(
+    title="Подтвердите действие"
+    v-model="state.confirmDialogVisible"
+    @closed="confirmDialogClosedHandler"
+  )
+    span Отправить запрос на получение книги?
+    template(#footer)
+      span.dialog-footer
+        el-button(@click="confirmDialogVisible = false") Отмена
+        el-button(type="primary" @click="state.confirmDialogAction") Ок
   el-row(type="flex" justify="center" align="middle")
     el-col(:span="24")
       h1 Поиск книг
@@ -95,12 +106,15 @@ div
               .book-card__ellipsis-description(v-if='book.description') {{book.description}}
           div
             el-row(justify='flex-end')
-              el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)')
-              el-button(circle icon='el-icon-question')
-              el-button(circle icon='el-icon-share')
+              el-tooltip(content='подробности о книге')
+               el-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='el-icon-info' @click='showBookDetails(book.id)') Подробно
+              el-tooltip(content='запросить книгу')
+                el-button(icon='el-icon-question' @click='requestBook(book.id)') Запрос
+              el-tooltip(content='сделать пост в соцсети')
+                el-button(icon='el-icon-share') Поделиться
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted, ref } from 'vue'
+import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted, ref, getCurrentInstance } from 'vue'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
@@ -110,9 +124,15 @@ export default {
     const searchTourName = 'search'
     const searchInputRef = ref(null)
     const filterButtonRef = ref(null)
+    // ссылка на главный объект приложения
+    const app = getCurrentInstance()
+    // ссылка на глобально доступную функцию отображния уведомлений
+    const notify = app.appContext.config.globalProperties.$notify
     // Создаем ссылку, по которой можно работать с элементом-оберткой
     // области бесконечной догрузки (карточек книг)
     const state = reactive({
+      confirmDialogVisible: false,
+      confirmDialogAction: () => {},
       // Модель фильтрации по строке поиска и полям боковой панели
       filter: {
         search: '',
@@ -356,6 +376,23 @@ export default {
       // отображение окна детализации книги
       state.bookDetailsDialogVisible = true */
     }
+    // обработчик клика по кнопке запроса книги на карточках книг
+    function requestBook (id) {
+      // отобразить диалог подтверждения отправки запроса
+      state.confirmDialogVisible = true
+      state.confirmDialogAction = () => {
+        // начать отправку запроса
+        store.dispatch('requestBook', { id }).then(() => {
+          notify({
+            type: 'success',
+            title: 'Действие выполнено',
+            message: `Запрос на получение отправлен. Обладатель книги свяжется с Вами по email`
+          })
+        })
+        // скрыть диалог подтверждения отправки запроса
+        state.confirmDialogVisible = false
+      }
+    }
     // обработчик закрытия окна детализации книги
     function bookDitailsDialogClosedHandler () {
       // зануление модели выбранной книги в стостоянии компонента
@@ -382,7 +419,8 @@ export default {
       /* booksInfiniteHandler, */ onSearchInputChange, countryItemSelected, countryInputChange,
       cityItemSelected, cityInputChange,
       applyFilter, showBookDetails, acceptAlert, tourUpdate,
-      onBookClicked, bookDitailsDialogClosedHandler, // methods
+      onBookClicked, bookDitailsDialogClosedHandler,
+      requestBook, // methods
       searchInputRef, filterButtonRef // refs
     }
   }

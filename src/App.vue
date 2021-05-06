@@ -1,5 +1,5 @@
 <template lang='pug'>
-el-container
+el-container(lang="ru")
   el-header
     Header
   el-main.container

@@ -4,6 +4,7 @@ import common from './common'
 import country from './country'
 import city from './city'
 import book from './book'
+import request from './request'
 import type from './type'
 import language from './language'
 import tour from './tour'
@@ -16,6 +17,6 @@ export default createStore({
   actions: {
   },
   modules: {
-    user, common, country, city, book, type, language, tour
+    user, common, country, city, book, request, type, language, tour
   }
 })

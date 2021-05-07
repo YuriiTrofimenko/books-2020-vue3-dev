@@ -54,7 +54,7 @@ div
     span Отправить запрос на получение книги?
     template(#footer)
       span.dialog-footer
-        el-button(@click="confirmDialogVisible = false") Отмена
+        el-button(@click="state.confirmDialogVisible = false") Отмена
         el-button(type="primary" @click="state.confirmDialogAction") Ок
   el-row(type="flex" justify="center" align="middle")
     el-col(:span="24")
@@ -115,6 +115,7 @@ div
 </template>
 <script>
 import { computed, reactive, /* onBeforeUnmount,  watch,*/ onMounted, onUnmounted, ref, getCurrentInstance } from 'vue'
+import { useRouter } from 'vue-router'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
 export default {
@@ -122,6 +123,7 @@ export default {
   components: { AutoComplete },
   setup () {
     const searchTourName = 'search'
+    const router = useRouter()
     const searchInputRef = ref(null)
     const filterButtonRef = ref(null)
     // ссылка на главный объект приложения
@@ -172,6 +174,7 @@ export default {
     const suggestedCountries = computed(() => store.getters.countries)
     const suggestedCities = computed(() => store.getters.cities)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
+    const checkUser = computed(() => store.getters.checkUser)
     // eslint-disable-next-line no-unused-vars
     const typeOptions = computed(() => store.getters.searchTypes.map((item, index, types) =>
        {return {
@@ -378,19 +381,23 @@ export default {
     }
     // обработчик клика по кнопке запроса книги на карточках книг
     function requestBook (id) {
-      // отобразить диалог подтверждения отправки запроса
-      state.confirmDialogVisible = true
-      state.confirmDialogAction = () => {
-        // начать отправку запроса
-        store.dispatch('requestBook', { id }).then(() => {
-          notify({
-            type: 'success',
-            title: 'Действие выполнено',
-            message: `Запрос на получение отправлен. Обладатель книги свяжется с Вами по email`
+      if (checkUser.value) {
+        // отобразить диалог подтверждения отправки запроса
+        state.confirmDialogVisible = true
+        state.confirmDialogAction = () => {
+          // начать отправку запроса
+          store.dispatch('requestBook', { bookId: id }).then(() => {
+            notify({
+              type: 'success',
+              title: 'Действие выполнено',
+              message: `Запрос на получение отправлен текущему пользователю книги.`
+            })
           })
-        })
-        // скрыть диалог подтверждения отправки запроса
-        state.confirmDialogVisible = false
+          // скрыть диалог подтверждения отправки запроса
+          state.confirmDialogVisible = false
+        }
+      } else {
+        router.push('/google-auth')
       }
     }
     // обработчик закрытия окна детализации книги

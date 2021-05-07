@@ -434,7 +434,7 @@ export default ({
       commit('clearBooks')
       commit('setOldestBookId', null)
     },
-    // Запрос на получение книги
+    /* // Запрос на получение книги
     requestBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
@@ -463,7 +463,7 @@ export default ({
         commit('setError', error.message)
         throw error
       }
-    },
+    }, */
     // Запрос на получение модели книги на клиент
     async getBookById ({commit, getters}, payload) {
       commit('clearError')

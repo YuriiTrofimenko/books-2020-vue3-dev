@@ -216,9 +216,9 @@ export default ({
             // пополняем ею массив локального состояния
             if (response.data.length > 0) {
               commit('setOldestMyBookId', response.data[response.data.length - 1].id)
-              /* response.data.forEach(myBook => {
+              response.data.forEach(myBook => {
                 console.log(myBook)
-              }) */
+              })
               const booksArray = []
               // Get task key (id)
               response.data.forEach(myBook => {
@@ -475,38 +475,33 @@ export default ({
           mode: 'cors'
         }
         const request = new Request(url, requestData)
-        return await fetch(request).then(function (response) {
-          return response.json()
-        }).then(function (response) {
-          if (response.data) {
-            const book = response.data
-            return new Book(
-              book.title,
-              book.author,
-              book.genre,
-              book.publisher,
-              book.volumeOrIssue,
-              book.description,
-              book.country,
-              book.city,
-              book.type,
-              book.language,
-              book.publicationDate,
-              book.image,
-              book.active,
-              book.userId,
-              book.userEmail,
-              book.updatedAt,
-              book.id
-            )
-          } else {
-            commit('setError', response.message)
-          }
-        }).catch(function (e) {
-          console.log(e)
-        }).finally(function () {
-          commit('setLoading', false)
-        })
+        const response = await fetch(request)
+        const responseBody = await response.json()
+        const book = responseBody.data
+        if (book) {
+          console.log('fetched by id book', book)
+          return new Book(
+            book.title,
+            book.author,
+            book.genre,
+            book.publisher,
+            book.volumeOrIssue,
+            book.description,
+            book.country,
+            book.city,
+            book.type,
+            book.language,
+            book.publicationDate,
+            book.image,
+            book.active,
+            book.userId,
+            book.userEmail,
+            book.updatedAt,
+            book.id
+          )
+        } else {
+          commit('setError', response.message)
+        }
       } catch (error) {
         commit('setLoading', false)
         commit('setError', error.message)

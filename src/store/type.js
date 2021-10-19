@@ -29,36 +29,34 @@ export default ({
           mode: 'cors',
         }
         const request = new Request(url, requestData)
-        await fetch(request).then(function (response) {
-          return response.json()
-        }).then(function (response) {
-          if (response.data) {
-            const typesArray = []
-            response.data.forEach(type => {
-              typesArray.push(
-                new Type(
-                  type.name,
-                  type.id
-                )
+        
+        const response = await fetch(request)
+        const responseBody = await response.json()
+        const types = responseBody.data
+        if (types) {
+          const typesArray = []
+          types.forEach(type => {
+            typesArray.push(
+              new Type(
+                type.name,
+                type.id
               )
-            })
-            const payload = {
-              types: typesArray
-            }
-            // Send mutation
-            commit('loadTypes', payload)
+            )
+          })
+          const payload = {
+            types: typesArray
           }
-        }).catch(function (e) {
-          console.log(e)
-        })
-        commit('setLoading', false)
+          // Send mutation
+          commit('loadTypes', payload)
+        }
       } catch (error) {
-        commit('setLoading', false)
         commit('setError', error.message)
         throw error
+      } finally {
+        commit('setLoading', false)
       }
+      return 0
     }
-
   },
   getters: {
     types (state){

@@ -84,7 +84,7 @@ el-dialog(
 )
   my-book-details-card(
     :book="state.selectedBook"
-    :typeName="(state.selectedBook) ? typeOptions.find(t => t.value === state.selectedBook.type).text : ''"
+    :typeName="(state.selectedBook && typeOptions) ? typeOptions.find(t => t.value === state.selectedBook.type)?.text : ''"
     :startBookEdit="() => startBookEdit(state.selectedBook.id)"
     :startBookDelete="() => startBookDelete(state.selectedBook.id)"
     :startBookShare="() => startBookShare(state.selectedBook.id)"
@@ -139,9 +139,9 @@ el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
             h3.book-card__title(@click="() => onBookClicked(book)")
               span {{book.title}}
               span(v-if='book.volumeOrIssue') &nbsp;({{book.volumeOrIssue}})
-            h4(v-if='typeOptions && book.type == 1' v-bind:style="{ 'color': '#093' }") {{typeOptions.find(t => t.value === book.type).text}}
-            h4(v-if='typeOptions && book.type == 2' v-bind:style="{ 'color': '#69f' }") {{typeOptions.find(t => t.value === book.type).text}}
-            h4(v-if='typeOptions && book.type == 3' v-bind:style="{ 'color': 'gray' }") {{typeOptions.find(t => t.value === book.type).text}}
+            h4(v-if='typeOptions && book.type == 1' v-bind:style="{ 'color': '#093' }") {{typeOptions ? typeOptions.find(t => t.value === book.type)?.text : ''}}
+            h4(v-if='typeOptions && book.type == 2' v-bind:style="{ 'color': '#69f' }") {{typeOptions ? typeOptions.find(t => t.value === book.type)?.text : ''}}
+            h4(v-if='typeOptions && book.type == 3' v-bind:style="{ 'color': 'gray' }") {{typeOptions ? typeOptions.find(t => t.value === book.type)?.text : ''}}
             div(v-if='book.author')
               strong автор:&nbsp;
               span {{book.author}}
@@ -163,7 +163,7 @@ el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
     el-button(@click='loadMoreBooks') More...
 </template>
 <script>
-import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, getCurrentInstance, ref } from 'vue'
+import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, onRenderTriggered, onRenderTracked, getCurrentInstance, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FilePreview from '../components/common/FilePreview'
 import MyBookDetailsCard from './myBooks/MyBookDetailsCard'
@@ -288,10 +288,16 @@ export default {
     // const infiniteLoadingCompleted = computed(() => state.isInfiniteLoadingCompleted)
     // eslint-disable-next-line no-unused-vars
     const typeOptions = computed(() => store.getters.types.map((item, index, types) =>
-       {return {
-        'text': item.name,
-        'value': item.id
-       }}
+       {
+         console.log('item', {
+            'text': item.name,
+            'value': item.id
+          })
+         return {
+          'text': item.name,
+          'value': item.id
+        }
+       }
     ))
     const bookFilterType = computed(() => state.filter.typeId)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
@@ -303,19 +309,8 @@ export default {
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
     onMounted(async () => {
-      store.dispatch('loadTypes')
-      // первый вызов метода получения порции моделей книг
-      // loadMoreBooks()
-      // console.log('route', route)
-      if(route.query.type){
-        state.filter.typeId = route.query.type
-        applyFilter()
-      } else if (route.params.id) {
-        showBookDetails(route.params.id)
-      } else {
-        loadMoreBooks()
-      }
-      store.dispatch('loadMyTotalCount')
+      // вызов метода получения описаний книг
+      await loadBooks()
       // установка обработчика события прокрутки
       window.addEventListener("scroll", handleScroll)
       const filterButtonPosition = filterButtonRef.value.$el.getBoundingClientRect()
@@ -365,6 +360,31 @@ export default {
       // очистка списка моделей книг
       await store.dispatch('clearMyBooks')
     })
+    onRenderTracked(() => {
+      // console.log('onRenderTracked', typeOptions.value, ev)
+    })
+    onRenderTriggered(() => {
+      console.log('onRenderTriggered', state.selectedBook, typeOptions.value)
+    })
+    // загрузка типов описаний книг -
+    // один раз при создании экземпляра компонента,
+    // так как этот список не меняется при дальнейшем взаимодействии
+    // пользователя с веб-интерфейсом
+    store.dispatch('loadTypes')
+    // метод получения списка или очередной части списка
+    // моделей описаний книг
+    async function loadBooks () {
+      if(route.query.type){
+        state.filter.typeId = route.query.type
+        applyFilter()
+        await store.dispatch('loadMyTotalCount')
+      } else if (route.params.id) {
+        showBookDetails(route.params.id)
+      } else {
+        loadMoreBooks()
+        await store.dispatch('loadMyTotalCount')
+      }
+    }
     // содержимое поля ввода поиска изменилось на один символ
     function onSearchInputChange () {
       // перезагрузка бесконечной загрузки книг
@@ -456,7 +476,7 @@ export default {
       state.currentBook.image = imageBase64
     }
     function addBookDialogClosedHandler () {
-      console.log(state.currentBook)
+      // console.log(state.currentBook)
     }
     // обработчик события "модальное окно (диалог) добавления / редактирования книги" открылся
     // внимание!
@@ -672,7 +692,8 @@ export default {
           await store.dispatch('getBookById', { id })
       }
       if(state.selectedBook){
-        console.log("state.selectedBook", state.selectedBook.image.length)
+        console.log("state.selectedBook", state.selectedBook)
+        console.log("typeOptions.value", typeOptions.value)
       }
       
       // отображение окна детализации книги

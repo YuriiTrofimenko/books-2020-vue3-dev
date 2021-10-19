@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Search from '../views/Search.vue'
 import MyBooks from '../views/MyBooks.vue'
+import Requests from '../views/Requests.vue'
 import Contacts from '../views/Contacts.vue'
 import GoogleAuth from '../views/GoogleAuth.vue'
 import store from '../store'
@@ -31,6 +32,14 @@ const routes = [
     name: 'MyBooks',
     component: MyBooks,
     // метка: переход на данный раздел требует аутентификации
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/requests',
+    name: 'Requests',
+    component: Requests,
     meta: {
       requiresAuth: true
     }
@@ -66,7 +75,7 @@ router.beforeEach((to, from, next) => {
     // если за две секунды аутентификация не будет выполнена автоматически
     setTimeout(() => {
       if (!auth) {
-        console.log('set targetAddress', to)
+        // console.log('set targetAddress', to)
         store.dispatch('setTargetAddress', to)
         // перенаправляем пользователя на раздел входа в аккаунт
         next({name: 'GoogleAuth'})

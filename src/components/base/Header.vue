@@ -66,6 +66,7 @@ export default {
                 { title: 'Главная', url: '/', icon: 'mdi-home' },
                 { title: 'Поиск', url: '/search', icon: 'mdi-book-search-outline' },
                 { title: 'Мои книги', url: '/my-books', icon: 'mdi-format-list-bulleted' },
+                { title: 'Запросы', url: '/requests', icon: 'mdi-file-send-outline' },
                 { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
               ] : [
                 { title: 'Главная', url: '/', icon: 'mdi-home' },

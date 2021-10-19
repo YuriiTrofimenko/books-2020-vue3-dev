@@ -37,7 +37,7 @@ export default ({
       state.requests.push(...payload.requests)
     },
     // Установка значения полного числа запросов
-    loadTotalCount (state, payload) {
+    loadTotalRequestsCount (state, payload) {
       state.totalCount = payload.count
     },
     // Удаление запроса
@@ -63,7 +63,7 @@ export default ({
   // Действия, которые можно вызывать из других модулей
   actions: {
     // Создание описания запроса
-    /* async requestBook ({commit, getters}, payload) {
+    async requestBook ({commit, getters, dispatch}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -90,11 +90,10 @@ export default ({
           // Если модель ответа содержит поле модели данных
           if (response.data) {
             // Добавляем модель данных о новом запросе в локальное состояние
-            // commit('newRequest', {
-            //   ...response.data
-            // })
-            // dispatch('loadTotalCount')
-            console.log(response.data)
+            commit('newRequest', {
+              ...response.data
+            })
+            dispatch('loadTotalCount')
           } else {
             commit('setError', response.message)
           }
@@ -107,7 +106,7 @@ export default ({
         commit('setError', error.message)
         throw error
       }
-    }, */
+    },
     // Загрузка списка запросов, полученных аутентифицированным пользователем
     async loadRequests ({commit, getters}) {
       commit('clearError')
@@ -143,6 +142,7 @@ export default ({
                   new BookRequest(
                     request.bookId,
                     request.userEmail,
+                    request.bookName, // author + title + volume
                     request.createdAt,
                     request.id
                   )
@@ -206,16 +206,15 @@ export default ({
       commit('clearRequests')
       commit('setOldestRequestId', null)
     },
-    // Отправка запроса аутентифицированного пользователя на получение книги
-    // текущему ее пользователю
-    requestBook ({commit, getters}, payload) {
+    // Изменение значения userId карточки книги на Id нового ее пользователя
+    transferBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
         // Отправка на сервер данных о пользователе, который просит книгу
         // (payload должен содержать bookId)
-        const data = Object.assign({userEmail: getters.user.email}, payload)
-        const url = getters.baseRestApiUrl + '?controller=request&action=create'
+        const data = Object.assign({currentUserId: getters.user.id}, payload)
+        const url = getters.baseRestApiUrl + '?controller=book&action=changeUser'
         const requestData = {
           method: 'POST',
           mode: 'cors',
@@ -240,7 +239,7 @@ export default ({
     },
     // обращение на сервер для получения числа запросов,
     // полученных аутентифицированным пользователем
-    async loadTotalCount ({commit, getters}) {
+    async loadTotalRequestsCount ({commit, getters}) {
       commit('clearError')
       commit('setLoading', true)
       try {
@@ -254,7 +253,7 @@ export default ({
           return response.json()
         }).then(function (response) {
           if (response.data) {
-            commit('loadTotalCount', {count: response.data.totalCount})
+            commit('loadTotalRequestsCount', {count: response.data.totalCount})
           } else {
             commit('setError', response.message)
           }

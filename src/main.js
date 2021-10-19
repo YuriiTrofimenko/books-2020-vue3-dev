@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/lib/theme-chalk/index.css'
+import loader from 'vue-ui-preloader'
+// import 'element-plus/dist/index.css'
 import firebase from 'firebase/app'
 import 'firebase/analytics'
 import 'firebase/auth'
@@ -18,7 +20,9 @@ import { Tour } from 'vue-tour-component'
 // require('../node_modules/tour-component/dist/tour.min.css')
 require('./css/tour-component-custom.css')
 
-const app = createApp(App).use(store).use(router).use(ElementPlus).use(i18n).use(FlagIcon)
+const app =
+  createApp(App).use(store).use(router).use(ElementPlus).use(i18n).use(FlagIcon)
+    .use(loader)
 app.component('tour', Tour)
 // активация клиентской логики firebase
 firebase.initializeApp(firebaseConfig)

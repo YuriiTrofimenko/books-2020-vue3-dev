@@ -1,6 +1,6 @@
 export default {
     state: {
-        loading: false,
+        loading: 0,
         error: null,
         // baseRestApiUrl: 'http://127.0.0.1:8082/api.php',
         baseRestApiUrl: 'https://books-as-a-gift.000webhostapp.com/api.php',
@@ -9,7 +9,12 @@ export default {
     },
     mutations: {
         setLoading (state, payload) {
-            state.loading = payload
+          // state.loading = payload
+          if (payload) {
+            state.loading++
+          } else {
+            state.loading--
+          }
         },
         setError (state, payload) {
             state.error = payload
@@ -24,7 +29,7 @@ export default {
     actions: {
         // Show loading
         setLoading ({commit}, payload) {
-            commit('setLoading', payload)
+          commit('setLoading', payload)
         },
         // Show error
         setError ({commit}, payload) {

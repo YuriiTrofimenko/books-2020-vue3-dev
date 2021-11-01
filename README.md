@@ -22,3 +22,16 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+## Project UI Dashboard run
+```
+vue ui
+```
+
+## Project Firebase deploy (after build)
+```
+nvm use 15
+firebase logout
+firebase login (to Yurii Trofimenko Google Account)
+firebase deploy
+```

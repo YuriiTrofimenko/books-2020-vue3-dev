@@ -8,6 +8,7 @@ import request from './request'
 import type from './type'
 import language from './language'
 import tour from './tour'
+import menuItems from './menuItems'
 
 export default createStore({
   state: {
@@ -17,6 +18,6 @@ export default createStore({
   actions: {
   },
   modules: {
-    user, common, country, city, book, request, type, language, tour
+    user, common, country, city, book, request, type, language, tour, menuItems
   }
 })

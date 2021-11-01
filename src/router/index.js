@@ -4,7 +4,7 @@ import Search from '../views/Search.vue'
 import MyBooks from '../views/MyBooks.vue'
 import Requests from '../views/Requests.vue'
 import Contacts from '../views/Contacts.vue'
-import GoogleAuth from '../views/GoogleAuth.vue'
+// import GoogleAuth from '../views/GoogleAuth.vue'
 import store from '../store'
 
 const routes = [
@@ -48,12 +48,12 @@ const routes = [
     path: '/contacts',
     name: 'Contacts',
     component: Contacts
-  },
+  }/* ,
   {
     path: '/google-auth',
     name: 'GoogleAuth',
     component: GoogleAuth
-  }
+  } */
 ]
 
 const router = createRouter({
@@ -78,7 +78,9 @@ router.beforeEach((to, from, next) => {
         // console.log('set targetAddress', to)
         store.dispatch('setTargetAddress', to)
         // перенаправляем пользователя на раздел входа в аккаунт
-        next({name: 'GoogleAuth'})
+        // next({name: 'GoogleAuth'})
+        store.dispatch('startGoogleSignIn')
+        next({name: 'Home'})
       } else {
         // иначе - пропускаем пользователя на желаемый раздел
         next()

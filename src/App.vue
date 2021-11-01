@@ -7,7 +7,7 @@ el-container(lang="ru")
   loader(v-if="store.getters.loading" object='#3465a4' color1='#ffffff' color2='#729fcf' size='5' speed='2' bg='#343a40' objectbg='#999793' opacity='80' disablescrolling='false' name='circular')
 </template>
 <script>
-// import { reactive } from 'vue'
+import { onMounted } from 'vue'
 import Header from './components/base/Header'
 import store from './store'
 export default {
@@ -16,6 +16,9 @@ export default {
     Header
   },
   setup () {
+    onMounted(() => {
+      store.dispatch('loadLanguages')
+    })
     return { store }
   }
 }

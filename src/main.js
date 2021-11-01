@@ -19,6 +19,7 @@ import { Tour } from 'vue-tour-component'
 
 // require('../node_modules/tour-component/dist/tour.min.css')
 require('./css/tour-component-custom.css')
+import './css/el-menu-item-custom.css'
 
 const app =
   createApp(App).use(store).use(router).use(ElementPlus).use(i18n).use(FlagIcon)
@@ -34,9 +35,10 @@ firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
       // Запоминаем его модель в переменную локального хранилища
       await store.dispatch('loggedUser', user)
+      store.dispatch('setUserItems')
       // Переходим на раздел сайта
       const targetAddress = store.getters.targetAddress
-      console.log('targetAddress main', targetAddress)
+      // console.log('targetAddress main', targetAddress)
       if(targetAddress){
         router.push({ path: targetAddress.path, query: targetAddress.query })
         await store.dispatch('setTargetAddress', null)
@@ -48,8 +50,9 @@ firebase.auth().onAuthStateChanged(async (user) => {
       // из учетной записи -
       // зануляем переменную данных о текущем пользователе в локальном хранилище
       // и переходим на раздел "Home"
-      store.dispatch('logoutUser')
-      router.push('/')
+      store.dispatch('setGuestItems')
+      // store.dispatch('unloggedUser')
+      // router.push('/')
     }
   })
 app.mount('#app')

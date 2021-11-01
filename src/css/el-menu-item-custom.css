@@ -1,0 +1,24 @@
+.el-menu-item-custom {
+  height: 56px;
+  line-height: 56px;
+  font-size: 14px;
+  color: #303133;
+  padding: 0 20px;
+  list-style: none;
+  position: relative;
+  -webkit-transition: border-color .3s,background-color .3s,color .3s;
+  transition: border-color .3s,background-color .3s,color .3s;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.el-menu--horizontal > .el-menu-item-custom {
+  float: left;
+  height: 60px;
+  line-height: 60px;
+  margin: 0;
+  border-bottom: 2px solid transparent;
+      border-bottom-color: transparent;
+  color: #909399;
+}

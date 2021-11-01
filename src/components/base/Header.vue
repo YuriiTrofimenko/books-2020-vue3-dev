@@ -1,29 +1,28 @@
 <template lang='pug'>
-el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizontal")
+el-menu(:default-active="state.activeLink" class="el-menu-demo" mode="horizontal")
     // ссылки на разделы сайта, генерируемые циклом
     el-menu-item(
-        v-for="(link, index) in linkMenu"
+        v-for="(link, index) in menuItems"
         :key="link.title"
-        @click="state.menuShow = false"
-        :index="index.toString()"
+        @click="navigate(link.url)"
+        :index="link.url"
     )
       router-link( :to="`${link.url}`" ) {{ link.title }}
-    el-menu-item
+    .el-menu-item-custom
       el-divider(direction='vertical')
     li.lang-menu
       span(
         v-for="(lang, index) in languages"
         :key="index"
-        :index="index.toString()"
         @click="setLocale(lang.localeKey)"
         :class="{ 'active-lang': i18n.getLocale() === lang.localeKey }"
       )
         span.lang-icon
           flag(:iso="lang.flagKey")
-    el-menu-item
+    .el-menu-item-custom
       el-divider(direction='vertical')
     // меню учетной записи, если пользователь аутентифицирован
-    li.auth-menu
+    li.auth-menu(@click="toggleAuthMenuVisibility()")
       span(v-if="checkUser")
         el-dropdown
           span.el-dropdown-link
@@ -32,16 +31,17 @@ el-menu(:default-active="state.activeIndex" class="el-menu-demo" mode="horizonta
             i.el-icon-arrow-down.el-icon--right
           template(#dropdown='')
             el-dropdown-menu
-              el-dropdown-item(disabled='') {{userData.name}}
-              el-dropdown-item(disabled='') {{userData.email}}
-              el-dropdown-item(divided='' @click='signOut') {{t('base.header.signOutButton')}}
+              el-dropdown-item(disabled='' key='name') {{userData.name}}
+              el-dropdown-item(disabled='' key='email') {{userData.email}}
+              el-dropdown-item(divided='' key='out' @click='signOut') {{t('base.header.signOutButton')}}
       // ссылка на раздел аутентификации, если пользователь не аутентифицирован
       span(v-else)
-        router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
+        a(@click="showGoogleSignIn()") {{t('base.header.signInButton')}}
+        // router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
 </template>
 <script>
-import { reactive, computed, getCurrentInstance, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, computed, getCurrentInstance, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from "vue3-i18n"
 import store from '../../store'
 export default {
@@ -52,45 +52,67 @@ export default {
         const i18n = useI18n()
         // console.log('i18n = ', i18n)
         const router = useRouter()
+        const route = useRoute()
         const state = reactive({
             menuShow: false,
-            activeIndex: "0"
+            activeLink: null,
+            menuItems: []
         })
         const checkUser = computed(() => store.getters.checkUser)
         const userData = computed(() => store.getters.user)
         const isLoading = computed(() => store.getters.loading)
         const languages = computed(() => store.getters.languages)
-        const linkMenu = computed(() =>
-          (checkUser.value)
-            ? [
-                { title: 'Главная', url: '/', icon: 'mdi-home' },
-                { title: 'Поиск', url: '/search', icon: 'mdi-book-search-outline' },
-                { title: 'Мои книги', url: '/my-books', icon: 'mdi-format-list-bulleted' },
-                { title: 'Запросы', url: '/requests', icon: 'mdi-file-send-outline' },
-                { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
-              ] : [
-                { title: 'Главная', url: '/', icon: 'mdi-home' },
-                { title: 'Поиск', url: '/search', icon: 'mdi-book-search-outline' },
-                { title: 'О нас', url: '/contacts', icon: 'mdi-contact-phone-outline' }
-              ]
-        )
-        onMounted(() => {
-          store.dispatch('loadLanguages')
+        const menuItems = computed(() => store.getters.menuItems)
+        onMounted(async () => {
+          console.log('Route onMounted: ' + route.path)
+          state.activeLink = route.path
+        })
+        watch(route.path, (path) => {
+          console.log('Route watch: ' + path)
+          state.activeLink = path
         })
         function signOut () {
+          const dropdownPopper = document.querySelector('.el-dropdown__popper')
+          dropdownPopper.style.display = 'none'
+          // router.push('/')
           // Выход из учетной записи
           store.dispatch('logoutUser')
-            .then(() => {
-              router.push('/')
-            })
         }
         function setLocale (lang) {
           i18n.setLocale(lang)
         }
+        function navigate (url) {
+          state.menuShow = false
+          router.push(url)
+        }
+        function toggleAuthMenuVisibility () {
+          const dropdownPopper = document.querySelector('.el-dropdown__popper')
+          if (dropdownPopper) {
+            dropdownPopper.style.display = 'block'
+            document.addEventListener("click", (evt) => {
+              const authMenuElement = document.querySelector('.auth-menu')
+              let targetElement = evt.target // clicked element
+              do {
+                console.log(targetElement, authMenuElement, targetElement === authMenuElement)
+                if (targetElement === authMenuElement) {
+                    // This is a click inside. Do nothing, just return.
+                    return
+                }
+                // Go up the DOM
+                  targetElement = targetElement.parentNode;
+              } while (targetElement)
+              // This is a click outside.
+              dropdownPopper.style.display = 'none'
+            })
+          }
+        }
+        function showGoogleSignIn () {
+          store.dispatch('startGoogleSignIn')
+        }
         return {
             state, // состояние
-            checkUser, userData, isLoading, linkMenu, languages, // вычисляемые свойства
-            signOut, t, setLocale, // методы
+            checkUser, userData, isLoading, languages, menuItems, // вычисляемые свойства
+            signOut, t, setLocale, navigate, toggleAuthMenuVisibility, showGoogleSignIn, // методы
             i18n
         }
     }

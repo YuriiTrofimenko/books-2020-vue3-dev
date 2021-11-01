@@ -35,7 +35,7 @@ el-menu(:default-active="state.activeLink" class="el-menu-demo" mode="horizontal
               el-dropdown-item(disabled='' key='email') {{userData.email}}
               el-dropdown-item(divided='' key='out' @click='signOut') {{t('base.header.signOutButton')}}
       // ссылка на раздел аутентификации, если пользователь не аутентифицирован
-      span(v-else)
+      span.auth-menu__signin(v-else)
         a(@click="showGoogleSignIn()") {{t('base.header.signInButton')}}
         // router-link(:to="'/google-auth'" ) {{t('base.header.signInButton')}}
 </template>
@@ -67,10 +67,13 @@ export default {
           console.log('Route onMounted: ' + route.path)
           state.activeLink = route.path
         })
-        watch(route.path, (path) => {
-          console.log('Route watch: ' + path)
-          state.activeLink = path
-        })
+        watch(
+          () => route.path,
+          async path => {
+            console.log('Route watch: ' + path)
+            state.activeLink = path
+          }
+        )
         function signOut () {
           const dropdownPopper = document.querySelector('.el-dropdown__popper')
           dropdownPopper.style.display = 'none'
@@ -135,9 +138,13 @@ export default {
     /* text-decoration none */
   img
     margin-bottom -10px
+.auth-menu__signin
+  cursor pointer
 .lang-icon
   margin-left 5px
   margin-right 5px
 .active-lang
-  border 4px double green
+  border 2px solid
+  padding 2px
+  color #409EFF
 </style>

@@ -47,7 +47,7 @@ export default {
       commit('setUser', new User(payload.uid, payload.displayName, payload.photoURL, payload.email))
     },
     unloggedUser (/* { commit } */) {
-      router.push('/')
+      // router.push('/')
       window.location.reload()
       // commit('setUser', null)
     },

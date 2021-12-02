@@ -19,19 +19,20 @@ export default {
   setup(props, ctx) {
     // локальная переменная для временного хранения текста,
     // полученного извне
-    let setItemText = ''
+    // let setItemText = ''
     // локальное состояние компонента
     const state = reactive({
       userInput: '', // текст из поля ввода, набранный пользователем или выбранный пользователем из списка
       selectedItem: {}, // модель пункта, выбранного из списка
-      isSuggestionsShown: false // отображен ли список предлагаемых вариантов
+      isSuggestionsShown: false, // отображен ли список предлагаемых вариантов
+      setItemText: ''
     })
     // наблюдаемые свойства
     const suggestions = computed(() => props.options) // список вариантов
     const clearHandlerComputed = computed(() => props.clearHandler) // флаг старта очистки поля ввода
     // наблюдатели за фактом изменения значения свойства
     watch(suggestions, (newValue) => {
-      if(!setItemText) {
+      if(!state.setItemText) {
         // список предложений не пуст - отображаем область предложений
         if (newValue.length > 0){
           state.isSuggestionsShown = true
@@ -42,8 +43,9 @@ export default {
         // если получение списка предложений произошло как следствие
         // передачи текста поля ввода извне -
         // вызываем обратчик события выбора пункта предложения вручную
-        selected(suggestions.value.find(s => s.name === setItemText))
-        setItemText = ''
+        // console.log('test', suggestions.value, state.setItemText)
+        selected(suggestions.value.find(s => s.name === state.setItemText))
+        state.setItemText = ''
       }
     })
     watch(clearHandlerComputed, (newValue) => {
@@ -58,18 +60,24 @@ export default {
     // методы
     // выбран пункт списка предложений
     function selected (item) {
+      // console.log('item', item)
       // по ключу, полученному из внешнего свойства,
       // извлекаем значение одного из свойств модели пункта списка,
       // предназначенное для вывода надписи на пункте списка,
       // и сохранияем набранный текст
-      state.userInput = item[props.optionsKey]
-      // устанавливаем модель выбранного пункта списка в состояние
-      state.selectedItem = { userInput: state.userInput, item: item }
-      // скрываем область предложений
-      state.isSuggestionsShown = false
-      // выброс события пользовательского типа itemSelected
-      // с аргументом - моделью выбранного пункта
-      ctx.emit('item-selected', item)
+      if (item) {
+        state.userInput = item[props.optionsKey]
+        // устанавливаем модель выбранного пункта списка в состояние
+        state.selectedItem = { userInput: state.userInput, item: item }
+        // скрываем область предложений
+        state.isSuggestionsShown = false
+        // выброс события пользовательского типа itemSelected
+        // с аргументом - моделью выбранного пункта
+        ctx.emit('item-selected', item)
+      } else {
+        state.userInput = ""
+        state.selectedItem = { }
+      }
     }
     // изменился текст в поле ввода
     function onChange (value) {
@@ -88,7 +96,7 @@ export default {
     function selectByText (newText) {
       // сохранение текста, полученного извне,
       // в локальной переменной компонента
-      setItemText = newText
+      state.setItemText = newText
       onChange (newText)
     }
     function reset () {

@@ -23,9 +23,10 @@ el-dialog(
     el-form.add-book-form(:model="state.currentBook" :rules="state.addBookFormRules" ref="bookForm")
       el-form-item(label="Название книги" prop="title")
         el-input(placeholder='укажите название' v-model='state.currentBook.title')
-      el-form-item(label="Тип"  prop="type")
-        el-select(v-model='state.currentBook.type' clearable placeholder="выбрать тип")
-          el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
+      el-form-item(label="Тип" prop="type")
+        single-select(v-model='state.currentBook.type' placeholder="выбрать тип" :options='typeOptions' option-key='value' option-label='text')
+        //-el-select(v-model='state.currentBook.type' clearable placeholder="выбрать тип")
+          //-el-option(:key='typeOption.text' :value='typeOption.value' :label='typeOption.text' v-for='typeOption in typeOptions')
       el-form-item(label="Язык(и)" prop="language")
         el-input(placeholder='укажите язык(и) текста' v-model='state.currentBook.language')
       el-form-item(label="Автор(ы)")
@@ -76,7 +77,7 @@ el-dialog(
   template(#footer)
     span.dialog-footer
       el-button(@click="addBookDialogCancel") Отмена
-      el-button(type="primary" @click="addBookDialogOk") Добавить
+      el-button(type="primary" @click="addBookDialogOk") {{(state.selectedBookId) ? 'Изменить' : 'Добавить'}}
 //- диалоговое окно детальной информации о книге, выбранной из сетки
 el-dialog(
   v-model="state.bookDetailsDialogVisible"
@@ -163,15 +164,17 @@ el-row#search-row(type="flex" justify="center" align="middle" :gutter="15")
     el-button(@click='loadMoreBooks') More...
 </template>
 <script>
+// import * as Vue from 'vue'
 import { computed, reactive, /* onBeforeUnmount, */ watch, onMounted, onUnmounted, onRenderTriggered, onRenderTracked, getCurrentInstance, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FilePreview from '../components/common/FilePreview'
 import MyBookDetailsCard from './myBooks/MyBookDetailsCard'
 import store from '../store'
 import AutoComplete from '../components/common/AutoComplete'
+import SingleSelect from '../components/common/SingleSelect.vue'
 export default {
   name: 'MyBooks',
-  components: { AutoComplete, FilePreview, MyBookDetailsCard },
+  components: { AutoComplete, FilePreview, MyBookDetailsCard, SingleSelect },
   setup () {
     let editedBookCountryName = ''
     let editedBookCityName = ''
@@ -609,6 +612,7 @@ export default {
             active: state.currentBook.active,
             id: state.selectedBookId
           }).then(() => {
+            console.log('store.getters.error', store.getters.error)
               if (!store.getters.error) {
                 notify({
                   type: 'success',
@@ -770,7 +774,6 @@ export default {
     }
     // обработчик запуска редактирования выбранной книги
     function startBookEdit (bookId) {
-      state.addBookDialogVisible = true
       resetAddBookDialog()
       state.selectedBookId = bookId
       // отсеиваем из вычисляемого списка моделей собственных книг
@@ -793,8 +796,11 @@ export default {
       editedBookCountryName = editedBook.country
       editedBookCityName = editedBook.city
       editedBookImage = editedBook.image
+      // console.log('typeOptions', typeOptions.value)
+      // console.log('state.currentBook.type', state.currentBook.type, typeof state.currentBook.type)
       // отображение диалога добавления книги (привключенном режиме редактирования)
-      // state.addBookDialogVisible = true
+      state.addBookDialogVisible = true
+      // store.dispatch('loadTypes')
     }
     // обработчик запуска диалога удаления выбранной книги
     function startBookDelete (bookId) {
@@ -809,21 +815,24 @@ export default {
     function resetAddBookDialog () {
       // если форма уже существует -
       // сбрасываем ее валидатор
-      if (bookForm.value) {
-        bookForm.value.resetFields()
-      }
+      /* if (bookForm.value) {
+        Vue.nextTick(() => {}).then(() => {
+          bookForm.value.resetFields()
+        }).catch((e) => console.log('resetFields error: ', e))
+      } */
       // устанавливаем исходные пустые значения
       // всем свойствам модели текущей книги в состоянии компонента,
       // у которых эти свойства подключются директивой двунаправленной привязки
       state.currentBook.title = ''
-      state.currentBook.type = ''
+      state.currentBook.author = ''
       state.currentBook.genre = ''
       state.currentBook.publisher = ''
       state.currentBook.volumeOrIssue = ''
+      state.currentBook.description = ''
+      state.currentBook.type = null
       state.currentBook.language = ''
       state.currentBook.publicationDate = ''
-      state.currentBook.author = ''
-      state.currentBook.description = ''
+      state.currentBook.image = ''
       state.currentBook.active = true
 
       state.currentBook.country = {
@@ -836,7 +845,7 @@ export default {
         name: ''
       }
 
-      state.currentBook.image = ''
+      
 
       if (filePreviewRef.value) {
         filePreviewRef.value.reset()

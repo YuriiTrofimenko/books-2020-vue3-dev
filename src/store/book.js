@@ -369,26 +369,21 @@ export default ({
           body: JSON.stringify(editedBookData)
         }
         const request = new Request(url, requestData)
-        await fetch(request).then(function (response) {
-          return response.json()
-        }).then(function (response) {
-          if (response.data) {
-            response.data.oldId = oldId
-            // Send mutation
-            commit('editBook', {
-              ...response.data
-            })
-          } else {
-            commit('setError', response.message)
-          }
-        }).catch(function (e) {
-          console.log(e)
-        })
+        const response = await fetch(request)
+        const responseBody = await response.json() 
+        if (responseBody.data) {
+          responseBody.data.oldId = oldId
+          commit('editBook', {
+            ...responseBody.data
+          })
+        } else {
+          commit('setError', response.message)
+        }
+      } catch (e) {
+        commit('setError', e.message)
+        console.log(e)
+      } finally {
         commit('setLoading', false)
-      } catch (error) {
-        commit('setLoading', false)
-        commit('setError', error.message)
-        throw error
       }
     },
     // действие удаления книги

@@ -1,16 +1,17 @@
 <template lang='pug'>
 //- боковая панель фильтра и сортировки
-el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px")
-  el-collapse(v-model="state.activeFilterBarItems")
-    el-collapse-item.filter-form__collapse-body(name='1')
+el-drawer(title="Фильтры" v-model='state.filterBarActive' size="350px" @opened='onFilterDrawerOpened')
+  el-collapse.drawer-content(v-model="state.activeFilterBarItems")
+    el-collapse-item(name='1' ref='filterFormTypeCollapseItemRef')
       template(#title)
         .filter-form__collapse-header
           | Тип предложения
           i.header-icon.el-icon-place
-      el-select(v-model='state.filter.typeId' clearable placeholder="выбрать тип")
-        el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
+      single-select(v-model='state.filter.typeId' id='filterTypeSelect' ref='filterTypeSelectRef' placeholder="выбрать тип" :options='typeOptions' option-key='value' option-label='text')
+      //- el-select(v-model='state.filter.typeId' clearable placeholder="выбрать тип")
+        //- el-option(:key='index' :value='typeOption.value' :label='typeOption.text' v-for='typeOption, index in typeOptions')
     //- el-collapse-item(name='2')
-    el-button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
+    el-button.drawer-content__button(icon='el-icon-check' type="success" plain @click='applyFilter') Применить
 //- диалоговое окно добавления новой книги (по умолчанию скрыто)
 el-dialog(
   :title="(state.selectedBookId) ? 'Изменить описание' : 'Добавить книгу'"
@@ -196,6 +197,8 @@ export default {
     const addBookButtonRef = ref(null)
     const filterButtonRef = ref(null)
     const searchInputRef = ref(null)
+    const filterFormTypeCollapseItemRef = ref(null)
+    const filterTypeSelectRef = ref(null)
     // стартовые значения для состояния компонента
     const initialState = reactive({
       // Флаг отображения окна добавления/редактирования описания книги
@@ -267,6 +270,7 @@ export default {
         typeId: null
       },
       filterBarActive: false,
+      filterBarTypeSelectOpened: true, 
       activeFilterBarItems: ['1'],
       selectCountryAction: null,
       selectCityAction: null,
@@ -302,16 +306,24 @@ export default {
         }
        }
     ))
-    const bookFilterType = computed(() => state.filter.typeId)
+    // const bookFilterType = computed(() => state.filter.typeId)
     const tourIsVisible = computed(() => state.tourData.index >= 0 && state.tourData.index < state.tourData.steps.length)
     // модель тура, если она была получена из удаленного хранилища
     const currentTour = computed(() => store.getters.tours.find((tour) => tour && tour.name === myBooksTourName))
-    watch(bookFilterType, () => {
+    watch(() => state.filter.typeId, () => {
       setUrl()
     })
     // обработчик события жизненного цикла компонента:
     // был примонтирован к дереву
     onMounted(async () => {
+      /* document.addEventListener("click", (e) => {
+        console.log('document click', e.target, filterTypeSelectRef.value)
+        if (filterTypeSelectRef.value && filterTypeSelectRef.value.$el.id !== e.target.id) {
+          console.log('document click 2')
+          // state.filterBarTypeSelectOpened = false
+          filterTypeSelectRef.value.resetState()
+        }
+      }) */
       // вызов метода получения описаний книг
       await loadBooks()
       // установка обработчика события прокрутки
@@ -395,7 +407,11 @@ export default {
     }
     // программная установка текущего маршрута с указанием параметров фильтра
     function setUrl () {
-      router.push({ path: 'my-books', query: { type: state.filter.typeId } })
+      const queryModel = {}
+      if (state.filter.typeId) {
+        queryModel.type = state.filter.typeId
+      }
+      router.push({ path: 'my-books', query: queryModel })
     }
     // пользователь выбрал страну из предложенного списка
     function countryItemSelected (selectedCountry) {
@@ -892,6 +908,17 @@ export default {
       }
       state.tourData.index = index
     }
+    // обработчик завершения открытия панели фильтра
+    function onFilterDrawerOpened () {
+      // исправление стиля тела схлопывающейся области фильтра книг по типу описания
+      console.log('filterFormTypeCollapseItemRef = ', filterFormTypeCollapseItemRef.value.$el.children[1])
+      // console.log('style = ' + filterFormTypeCollapseItemRef.value.children[0].style)
+      filterFormTypeCollapseItemRef.value.$el.children[1].style.overflow = 'initial'
+    }
+    function onFilterBarTypeOpened () {
+      state.filterBarTypeSelectOpened = true
+      console.log('onFilterBarTypeOpened', state.filterBarTypeSelectOpened)
+    }
     return {
       state, // state
       suggestedCountries, suggestedCities, selectedImage,
@@ -907,9 +934,10 @@ export default {
       deleteBookDialogOk, deleteBookDialogCancel,
       startBookAdd, startBookEdit, startBookDelete, startBookShare,
       onSearchInputChange, applyFilter,
-      tourUpdate, loadMoreBooks, // methods
+      tourUpdate, loadMoreBooks, onFilterDrawerOpened, onFilterBarTypeOpened, // methods
       bookForm, countryAutoComplete, cityAutoComplete, filePreviewRef,
-      filterButtonRef, addBookButtonRef, searchInputRef // refs
+      filterButtonRef, addBookButtonRef, searchInputRef, filterFormTypeCollapseItemRef,
+      filterTypeSelectRef // refs
     }
   }
 }
@@ -954,4 +982,8 @@ export default {
       overflow hidden
       text-overflow ellipsis
       white-space nowrap
+.drawer-content
+  padding 0 20px 0 20px
+.drawer-content__button
+  margin 20px 0 20px 0
 </style>

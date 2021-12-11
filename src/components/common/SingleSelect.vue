@@ -1,27 +1,30 @@
 <template lang='pug'>
-div(ref='singleSelectRef')
+.single-select-root(ref='singleSelectRef')
   div(v-if='!state.selectedOption' :class='classes.wrapper')
     .relative.inline-block.w-full
       input(ref='searchRef' :disabled='disabled' :class='[classes.input, isRequired]' :id='inputId' @focus='seedSearchText' @keydown.enter.prevent='setOption' @keyup.enter.prevent='setOption' @keyup.down='movePointerDown' @keyup.tab.stop='closeOut' @keyup.esc.stop='closeOut' @keyup.up='movePointerUp' :placeholder='placeholder' autocomplete='off' :required='required' v-model='state.searchText')
       .cursor-pointer.absolute.flex.items-center(@click='toggleDropdown' :class='[classes.icons]')
-        svg(v-if='!state.dropdownOpen' aria-hidden='true' viewbox='0 0 448 512')
+        div(v-if='!state.dropdownOpen') &#8964;
+        div(v-else='') &#8963;
+        //- svg(v-if='!state.dropdownOpen' aria-hidden='true' viewbox='0 0 448 512')
           path(d='M207.029 381.476L12.686 187.132c-9.373-9.373-9.373-24.569 0-33.941l22.667-22.667c9.357-9.357 24.522-9.375 33.901-.04L224 284.505l154.745-154.021c9.379-9.335 24.544-9.317 33.901.04l22.667 22.667c9.373 9.373 9.373 24.569 0 33.941L240.971 381.476c-9.373 9.372-24.569 9.372-33.942 0z')
-        svg(v-else='' aria-hidden='true' viewbox='0 0 448 512')
+        //- svg(v-else='' aria-hidden='true' viewbox='0 0 448 512')
           path(d='M240.971 130.524l194.343 194.343c9.373 9.373 9.373 24.569 0 33.941l-22.667 22.667c-9.357 9.357-24.522 9.375-33.901.04L224 227.495 69.255 381.516c-9.379 9.335-24.544 9.317-33.901-.04l-22.667-22.667c-9.373-9.373-9.373-24.569 0-33.941L207.03 130.525c9.372-9.373 24.568-9.373 33.941-.001z')
-      ul.absolute.w-full.overflow-auto.appearance-none.mt-px.list-reset(tabindex='-1' ref='options' v-if='matchingOptions' :style="{'max-height': maxHeight}" style='z-index: 100;padding' :class='[classes.dropdown]')
+      ul.absolute.w-full.overflow-auto.appearance-none.mt-px.list-reset(tabindex='-1' ref='options' v-if='matchingOptions && state.dropdownOpen' :style="{'max-height': maxHeight}" style='z-index: 100;padding' :class='[classes.dropdown]')
         li.cursor-pointer.outline-none(tabindex='-1' v-for='(option, idx) in matchingOptions' :key='idx' :class="idx === pointer ? classes.activeClass : ''" @mouseover='setPointerIdx(idx)' @keyup.enter='setOption' @keyup.up='movePointerUp' @keyup.down='movePointerDown' @click.prevent='setOption')
           slot(name='option' v-bind='{option,idx}') {{ getOptionDescription(option) }}
   div(:class='classes.wrapper' v-if='state.selectedOption')
     input(:id='inputId' :class='[classes.input]' ref='matchRef' :required='required' @input='switchToSearch($event)' :value='getOptionDescription(state.selectedOption)')
     input(type='hidden' :name='name' ref='selectedValueRef' :value='getOptionValue(state.selectedOption)')
-    .flex.absolute.items-center(:class='classes.icons')
-      svg.cursor-pointer(aria-hidden='true' @click='closeOut' viewbox='0 0 512 512')
+    .flex.absolute.items-center.cursor-pointer(:class='classes.icons' @click='resetState') &times;
+      //- svg.cursor-pointer(aria-hidden='true' @click='closeOut' viewbox='0 0 512 512')
         path(d='M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z')
+  //- span.clear-cross(v-if='state.initial' @click='resetState') &times;
 </template>
 <script>
 import pointerScroll from "./pointerScroll"
 import * as Vue from 'vue'
-import { onMounted, onUnmounted, reactive, watch, computed, ref } from 'vue'
+import { onMounted, /*onUnmounted,*/ reactive, watch, computed, ref } from 'vue'
 export default {
   name: 'SingleSelect',
   mixins: [pointerScroll],
@@ -109,16 +112,16 @@ export default {
     getOptionDescription: {
       type: Function,
       default: function(option) {
-        if (this.optionKey && this.optionLabel) {
+        /* if (this.optionKey && this.optionLabel) {
           return option[this.optionKey] + " " + option[this.optionLabel];
-        }
+        }*/
         if (this.optionLabel) {
-          return option[this.optionLabel];
+          return option[this.optionLabel]
         }
-        if (this.optionKey) {
+        /* if (this.optionKey) {
           return option[this.optionKey];
-        }
-        return option;
+        } */
+        // return option;
       }
     },
     getOptionValue: {
@@ -179,8 +182,8 @@ export default {
     const matchRef = ref(null)
     /* Lifecycle */
     onMounted(() => {
-      document.addEventListener("click", handleClickOutside);
-      document.addEventListener("keyup", handleClickOutside);
+      // document.addEventListener("click", handleClickOutside);
+      // document.addEventListener("keyup", handleClickOutside);
       const currentOption = props.options.find((o) => o[props.optionKey] === props.modelValue)
       if (currentOption) {
         // state.selectedOption = props.modelValue;
@@ -190,16 +193,18 @@ export default {
       }
       state.searchText = props.initial;
     })
-    onUnmounted(() => {
+    /* onUnmounted(() => {
       document.removeEventListener("keyup", handleClickOutside);
       document.removeEventListener("click", handleClickOutside);
-    })
+    }) */
     /* Reactive */
-    const state = reactive({ 
+    const initialState = { 
       searchText: null,
       selectedOption: null,
-      dropdownOpen: false
-    })
+      dropdownOpen: false,
+      initial: true
+    }
+    const state = reactive({...initialState})
     /* Watch */
     watch(() => props.modelValue, (curr) => {
       // state.selectedOption = curr
@@ -210,6 +215,7 @@ export default {
       if (curr !== prev) {
         // eslint-disable-next-line vue/no-mutating-props
         props.classes.pointer = -1;
+        state.searchText = ''
       }
     })
     watch(() => state.selectedOption, (curr) => {
@@ -221,6 +227,7 @@ export default {
       }
     })
     watch(() => state.dropdownOpen, (curr, prev) => {
+      console.log('state.dropdownOpen', curr, prev)
       if (curr === prev) {
         return;
       }
@@ -232,10 +239,9 @@ export default {
         state.searchText = "";
       }
       Vue.nextTick(() => {}).then(() => {
-        searchRef.value.search.focus();
+        searchRef.value.focus()
       })
     })
-    /* Computed */
     const isRequired = computed(() => {
       if (!props.required) {
         return "";
@@ -273,6 +279,7 @@ export default {
       state.searchText = event.target.value;
       state.selectedOption = null;
       state.dropdownOpen = true;
+      ctx.emit("listOpened", true)
     }
     function toggleDropdown() {
       if (props.disabled) {
@@ -303,7 +310,6 @@ export default {
       }
     }
     function setOption() {
-      console.log(this.matchingOptions);
       if (!this.matchingOptions || !this.matchingOptions.length) {
         return;
       }
@@ -318,24 +324,35 @@ export default {
       // eslint-disable-next-line vue/no-mutating-props
       props.classes.pointer = -1;
       Vue.nextTick(() => {}).then(() => {
-        matchRef.value.focus();
-      });
+        matchRef.value.focus()
+      })
+      if (state.initial) {
+        state.initial = false
+      }
     }
-    function handleClickOutside(e) {
-      if (singleSelectRef.value.contains(e.target) || e.target.id === this.inputId) {
+    function resetState() {
+      Object.assign(state, initialState)
+    }
+    /* function handleClickOutside(e) {
+      // если клик произошел за пределами списка вариантов
+      if (singleSelectRef.value === e.target || e.target.id === this.inputId) {
         return;
       }
-      state.dropdownOpen = false;
-      state.searchText = null;
-    }
+      console.log('e', e)
+      console.log('singleSelectRef.value', singleSelectRef.value)
+      // закрываем список
+      state.dropdownOpen = false
+      // очищаем поле ввода
+      state.searchText = null
+    } */
     return {
       // state
       state,
       // computed
-      isRequired, matchingOptions,
+      isRequired, matchingOptions,// isOpened,
       // methods
       setPointerIdx, seedSearchText, switchToSearch, toggleDropdown, closeOut,
-      movePointerDown, movePointerUp, setOption, handleClickOutside,
+      movePointerDown, movePointerUp, setOption, resetState, // handleClickOutside,
       // refs
       singleSelectRef, searchRef, selectedValueRef, matchRef
     }
@@ -343,6 +360,9 @@ export default {
 }
 </script>
 <style scoped>
+.single-select-root {
+  position: relative
+}
 .w-full {
   width: 100%;
 }
@@ -495,13 +515,18 @@ export default {
   padding: 0.375em 0.75em;
   font-size: 1em;
   line-height: 1.5;
-  color: #495057;
+  /* color: #495057; */
+  color: transparent;
+  text-shadow: 0 0 0 #495057;
   background-color: #fff;
   background-clip: padding-box;
   border: 1px solid #ced4da;
   border-radius: 0.25em;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   box-sizing: border-box;
+}
+.search-input:focus {
+  outline: none;
 }
 .icons {
   padding: 0 1em;
@@ -541,5 +566,17 @@ export default {
 }
 .active {
   background: #dae1e7;
+}
+.clear-cross {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-weight: bold;
+  font-size: 1.4em;
+  padding: 0 0.2em;
+  line-height: 1em;
+  cursor: pointer;
+  z-index: 10;
 }
 </style>

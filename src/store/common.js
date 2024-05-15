@@ -2,8 +2,8 @@ export default {
     state: {
         loading: 0,
         error: null,
-        // baseRestApiUrl: 'http://127.0.0.1:8082/api.php',
-        baseRestApiUrl: 'https://books-as-a-gift.000webhostapp.com/api.php',
+        baseRestApiUrl: 'http://192.168.0.135:8082/api.php',
+        // baseRestApiUrl: 'https://books-as-a-gift.000webhostapp.com/api.php',
         targetAddress: null
         // baseRestApiUrl: 'https://books-as-a-gift.000webhostapp.com/api.php'
     },
@@ -39,7 +39,7 @@ export default {
         clearError ({commit}) {
             commit('clearError')
         },
-        // 
+        //
         setTargetAddress ({commit}, payload) {
             commit('setTargetAddress', payload)
         }
